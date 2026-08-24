@@ -21,7 +21,7 @@ paths:
     get: { security: [{ sessionCookie: [] }], responses: { '200': { description: Masked customer, headers: { ETag: { $ref: '#/components/headers/ETag' } } } } }
     patch: { security: [{ sessionCookie: [] }], parameters: [{ $ref: '#/components/parameters/IfMatch' }], requestBody: { $ref: '#/components/requestBodies/Json' }, responses: { '200': { description: Updated } } }
   /api/cards:
-    get: { security: [{ sessionCookie: [] }], parameters: [{ name: accountId, in: query, schema: { type: string } }, { name: cardNumber, in: query, schema: { type: string } }, { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/CardLimit' }], responses: { '200': { description: Seven-row default cursor page } } }
+    get: { security: [{ sessionCookie: [] }], parameters: [{ name: accountId, in: query, schema: { type: string } }, { name: cardNumber, in: query, schema: { type: string } }, { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/CardLimit' }], responses: { '200': { description: Seven-row default exclusive cursor page; invalid cursors return 400 INVALID_CURSOR } } }
   /api/cards/{cardNumber}:
     parameters: [{ name: cardNumber, in: path, required: true, schema: { type: string, pattern: '^\\d{16}$' } }]
     get: { security: [{ sessionCookie: [] }], responses: { '200': { description: Card without CVV, headers: { ETag: { $ref: '#/components/headers/ETag' } } } } }
@@ -29,9 +29,9 @@ paths:
   /api/lookup/transaction-types: { get: { security: [{ sessionCookie: [] }], responses: { '200': { description: Imported type lookup } } } }
   /api/lookup/transaction-categories: { get: { security: [{ sessionCookie: [] }], parameters: [{ name: typeCode, in: query, schema: { type: string, pattern: '^\\d{2}$' } }], responses: { '200': { description: Imported category lookup } } } }
   /api/transactions:
-    get: { security: [{ sessionCookie: [] }], parameters: [{ name: accountId, in: query, schema: { type: string } }, { name: cardNumber, in: query, schema: { type: string } }, { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }], responses: { '200': { description: Ten-row default cursor page } } }
+    get: { security: [{ sessionCookie: [] }], parameters: [{ name: accountId, in: query, schema: { type: string } }, { name: cardNumber, in: query, schema: { type: string } }, { $ref: '#/components/parameters/Cursor' }, { $ref: '#/components/parameters/Limit' }], responses: { '200': { description: Ten-row default exclusive cursor page; invalid cursors return 400 INVALID_CURSOR } } }
     post: { security: [{ sessionCookie: [] }], parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }], requestBody: { $ref: '#/components/requestBodies/Json' }, responses: { '201': { description: Transaction stored; account balance is intentionally unchanged per COTRN02C }, '200': { description: Idempotent replay }, '409': { $ref: '#/components/responses/Error' } } }
-  /api/transactions/{transactionId}: { get: { security: [{ sessionCookie: [] }], parameters: [{ name: transactionId, in: path, required: true, schema: { type: string, pattern: '^\\d{16}$' } }], responses: { '200': { description: Transaction detail } } } }
+  /api/transactions/{transactionId}: { get: { security: [{ sessionCookie: [] }], parameters: [{ name: transactionId, in: path, required: true, schema: { type: string, pattern: '^\\d{16}$' } }], responses: { '200': { description: Transaction detail. Timestamps use UTC YYYY-MM-DD HH:MM:SS.ffffff; blank processedAt is an empty string. } } } }
   /api/billing/{accountId}/preview: { get: { security: [{ sessionCookie: [] }], parameters: [{ $ref: '#/components/parameters/AccountId' }], responses: { '200': { description: Full-balance preview, headers: { ETag: { $ref: '#/components/headers/ETag' } } } } } }
   /api/billing/{accountId}/pay-full-balance: { post: { security: [{ sessionCookie: [] }], parameters: [{ $ref: '#/components/parameters/AccountId' }, { $ref: '#/components/parameters/IfMatch' }, { $ref: '#/components/parameters/IdempotencyKey' }], requestBody: { $ref: '#/components/requestBodies/Json' }, responses: { '201': { description: Payment and updated account, headers: { ETag: { $ref: '#/components/headers/ETag' } } }, '200': { description: Idempotent replay }, '409': { $ref: '#/components/responses/Error' } } } }
   /api/reports: { post: { security: [{ sessionCookie: [] }], requestBody: { $ref: '#/components/requestBodies/Json' }, responses: { '201': { description: Immediately completed report } } } }
@@ -52,7 +52,7 @@ components:
     AccountId: { name: accountId, in: path, required: true, schema: { type: string, pattern: '^\\d{11}$' } }
     IfMatch: { name: If-Match, in: header, required: true, schema: { type: string } }
     IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 128 } }
-    Cursor: { name: cursor, in: query, schema: { type: string } }
+    Cursor: { name: cursor, in: query, description: Exclusive cursor from the matching filtered result set; malformed or nonmatching values return 400 INVALID_CURSOR., schema: { type: string } }
     Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
     CardLimit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 7 } }
   requestBodies: { Json: { required: true, content: { application/json: { schema: { type: object } } } } }

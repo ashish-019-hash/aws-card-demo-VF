@@ -1,45 +1,56 @@
 # CardDemo Express backend
 
-A self-contained Express migration of the supplied CardDemo CICS/COBOL programs. It imports the fixed-width ASCII records into a JSON persistence file, so no external database service is required for local use or CI.
+CardDemo is an Express migration of the supplied CICS/COBOL workflows. PostgreSQL is the **only** runtime persistence store; startup never imports fixtures or modifies an empty database.
 
-## Run and configuration
+## Local PostgreSQL setup
 
 ```sh
 cd express-backend
 npm ci
-DATA_FILE="$(mktemp -u)/carddemo.json" npm run import
-DATA_FILE="$(mktemp -u)/carddemo.json" npm start
-npm test
+npm run db:up
+npm run migrate
+npm run seed
+npm start
 ```
 
-`npm start` imports the source fixtures automatically when `DATA_FILE` does not exist. Copy `.env.example` to `.env` for local configuration (the process deliberately does not load `.env`; use your deployment's environment loader or export values). `SESSION_SECRET` must be a long random value in production. `TRUST_PROXY` configures Express's trusted proxy setting (`true`, a hop count, or a proxy subnet list) and must be set correctly when TLS terminates upstream so production secure cookies work. `DATA_FILE` defaults to `data/carddemo.json`, which is generated and gitignored.
+`compose.yaml` pins PostgreSQL 16.8 Alpine and exposes a local development database at `postgresql://carddemo:carddemo_local_only@localhost:5432/carddemo`. `db:up` waits for database readiness. `reset` removes the local volume, starts a fresh server, then requires `migrate` and `seed` again. Migrations are ordered and rerunnable; seed is transactional and rerunnable.
 
-The JSON store writes a same-directory temporary file and atomically renames it only after a successful logical mutation. It is **single-process only**: atomic rename prevents torn writes but does not coordinate multiple Node processes. Sessions expire lazily on access; normal GETs do not rewrite persistence. Mutations perform bounded cleanup (at most 100 records) of expired sessions and retained idempotency/report records older than 30 days; this is demo-store retention, not archival policy.
+Production requires `DATABASE_URL`. Set `DB_SSL=true` for TLS: certificate verification is enabled by default. `DB_SSL_CA` accepts a CA bundle (use `\n` escapes in environment configuration). `DB_SSL_REJECT_UNAUTHORIZED=false` is an explicit development-only opt-out and must not be used for production databases.
+
+## Testing
+
+Tests refuse to run against `DATABASE_URL`. Create an isolated database once, then supply a URL whose database name contains `test`:
+
+```sh
+npm run db:up
+npm run test:db:create
+TEST_DATABASE_URL=postgresql://carddemo:carddemo_local_only@localhost:5432/carddemo_test npm test
+```
+
+The test runner migrates the isolated database itself and resets/seeds it before each integration test. Run `npm run cleanup` from a scheduler to remove expired sessions and idempotency/report records older than 30 days; normal reads do not rewrite sessions or extend the fixed eight-hour expiry.
 
 ## Demo credentials
 
-There is no supplied ASCII `USRSEC` input. The legacy tree does include an **EBCDIC** `USRSEC` file, but it is not a portable source of safely verified plaintext or password hashes. The importer therefore creates documented bcrypt demo users instead:
+No portable ASCII `USRSEC` fixture exists. The seed therefore creates stable demo users only when absent:
 
 | Role | User ID | Password | Name |
 |---|---|---|---|
 | Admin (`A`) | `ADMIN001` | `Admin123!` | Demo Administrator |
 | Business (`U`) | `USER0001` | `User123!` | Demo Business User |
 
-Change or remove demo users before any shared deployment. New admin users require first and last names. Passwords use a modern minimum of eight characters rather than the legacy `PIC X(8)` screen field, while the user ID remains the source-compatible 3–8 character identifier.
-
 ## Security and API rules
 
-Success responses use `{ "data": ... }`; failures use `{ "error": { "code", "message", "details"? } }`. Cookies are signed, server-side, `HttpOnly`, `SameSite=Strict`, and `Secure` in production; sign-in regenerates the session. Every protected request verifies that its session user still exists with the same role, so deletion or a role change revokes prior access. Password hashes and CVVs never leave the server. Customer SSN, government ID, and EFT account values are masked; government ID and EFT account ID are intentionally read-only because accepting a masked read-back value would corrupt the stored identifier. Internal record versions are not exposed; mutable resource reads supply an `ETag` for required `If-Match` updates.
+Success responses use `{ "data": ... }`; failures use `{ "error": { "code", "message", "details"? } }`. Cookies are signed, server-side, `HttpOnly`, `SameSite=Strict`, and `Secure` in production. Sign-in regenerates and explicitly saves the session. Each protected request verifies the stored user and role, so deletion and role changes revoke sessions. Password hashes and CVVs never leave the server. SSN, government ID, and EFT account ID are masked and read-only.
 
-Roles are deliberately strict: role `U` accesses business APIs only and role `A` accesses administrative user APIs only. Admins cannot delete themselves or the final `A` user. Transaction and payment creation require an 8–128 visible-ASCII `Idempotency-Key`. A key persists its target, canonical request fingerprint, and complete result: exactly the same request replays; a changed target or body returns `409 IDEMPOTENCY_CONFLICT`.
+Roles are deliberately separate: `U` accesses business APIs and `A` accesses administrative APIs. Admins cannot delete themselves, the final administrator, or concurrently demote/delete all administrators. Mutable resources use quoted ETags and required `If-Match`. Cards default to seven rows and transactions/users to ten; limits above 100 and cursors not in the matching filtered result set return `400 INVALID_CURSOR`/`INVALID_LIMIT`.
 
-Pagination rejects invalid limits/cursors. Cards default to seven rows (the `COCRDLIC` screen); transactions and users default to ten rows (`COTRN00C`). Customer phones accept legacy-compatible digits and common `+(). -` punctuation up to 15 characters. State and country preserve source field widths (two and three characters respectively); this migration does not claim membership validation because the supplied source has no state/country lookup file.
+Transaction and payment creation require an 8–128 visible-ASCII `Idempotency-Key`. Same target and canonical request body replay the original result; a changed target/body returns `409 IDEMPOTENCY_CONFLICT`. PostgreSQL transactions and row locks ensure full-balance payments atomically create exactly one payment transaction, zero the balance, and increment cycle credit.
 
 ## Behavioral parity and reports
 
-`POST /api/transactions` follows `COTRN02C`: it **writes only a transaction** and does not change account balances or cycle totals, because that COBOL flow does no account `REWRITE`. `POST /api/billing/{accountId}/pay-full-balance` is the only online balance-changing command and follows `COBIL00C`; it resolves the payment card through the supplied xref, writes the payment, zeros balance, increments cycle credit, and returns the updated account and ETag.
+`POST /api/transactions` follows `COTRN02C`: it writes only a transaction and never changes account balance/cycle totals. Full-balance billing follows `COBIL00C` and is the only online balance-changing command. `DATE` values, `timestamp(6)` values, leading-zero identifiers, blank processed timestamps, and fixed-width source values retain their original wire representation. API-created timestamps use `YYYY-MM-DD HH:MM:SS.ffffff` UTC text.
 
-Reports complete synchronously. A custom report needs real ordered `startDate`/`endDate`; monthly and yearly reports calculate the current UTC calendar period. Rows are sorted by effective date then transaction ID. Their effective date is `processedAt` when present, otherwise `originatedAt`; the fallback supports imported `dailytran` records whose processing timestamp field is blank. Content includes account and grand totals and is visible only to its creating `U` session.
+Reports finish synchronously. Custom is the default period (including a falsey period); monthly/yearly use UTC calendar dates. Rows select by `processedAt`, falling back to `originatedAt`, order by effective date then transaction ID, and remain visible only to the report owner.
 
 ## Source-to-endpoint mapping
 
@@ -47,16 +58,15 @@ Reports complete synchronously. A custom report needs real ordered `startDate`/`
 |---|---|
 | `COSGN00C` | `POST /api/auth/sign-in`, `POST /api/auth/sign-out`, `GET /api/auth/me` |
 | `COMEN01C` / `COADM01C` | `GET /api/menu` |
-| `COACTVWC` / `COACTUPC` | `GET/PATCH /api/accounts/{accountId}`, `GET/PATCH /api/accounts/{accountId}/customers/{customerId}` |
-| `COCRDLIC` / `COCRDSLC` / `COCRDUPC` | `GET /api/cards`, `GET/PATCH /api/cards/{cardNumber}` |
-| `COTRN00C` / `COTRN01C` / `COTRN02C` | `GET/POST /api/transactions`, `GET /api/transactions/{transactionId}` |
-| lookup copybooks | `GET /api/lookup/transaction-types`, `GET /api/lookup/transaction-categories` |
-| `COBIL00C` | `GET /api/billing/{accountId}/preview`, `POST /api/billing/{accountId}/pay-full-balance` |
-| `CORPT00C` / `TRANREPT` | `POST /api/reports`, `GET /api/reports/{reportId}`, `GET /api/reports/{reportId}/content` |
+| `COACTVWC` / `COACTUPC` | account and customer `GET/PATCH` |
+| `COCRDLIC` / `COCRDSLC` / `COCRDUPC` | card list/detail/update |
+| `COTRN00C` / `COTRN01C` / `COTRN02C` | transaction list/detail/create |
+| `COBIL00C` | billing preview/full-balance payment |
+| `CORPT00C` / `TRANREPT` | report creation/status/content |
 | `COUSR00C`–`COUSR03C` | `/api/admin/users` CRUD |
 
 ## Import fidelity
 
-`src/import-data.js` imports every supplied ASCII file: `acctdata`, `carddata`, `cardxref`, `custdata`, `dailytran`, `discgrp`, `tcatbal`, `trancatg`, and `trantype`, using `CVACT01Y`–`CVACT03Y`, `CVCUS01Y`/`CUSTREC`, and `CVTRA01Y`–`CVTRA06Y`. It decodes COBOL zoned decimal overpunch (`{`–`I` positive; `}`–`R` negative) and applies the copybook implied decimal scale. Lookup endpoints expose imported transaction types and categories.
+`src/import-data.js` validates every nonblank source record width before parsing: account 300, card 150, card xref 36 meaningful bytes, customer 500, daily transaction 350, disclosure/category balance 50, and lookup 60. It preserves leading-zero IDs, CVV, SSN, government/EFT IDs, code fields, merchant IDs, dates, blank processed timestamps, and COBOL zoned-decimal overpunch (`{`–`I` positive and `}`–`R` negative). Seed updates source-owned rows without truncating sessions, idempotency data, reports, API-created users, or API-created transactions.
 
-The complete machine-readable contract, including all implemented paths, security, pagination, ETags, and statuses, is in [`openapi.yaml`](openapi.yaml).
+The complete machine-readable contract is in [`openapi.yaml`](openapi.yaml).
