@@ -27,7 +27,7 @@ npm run test:db:create
 TEST_DATABASE_URL=postgresql://carddemo:carddemo_local_only@localhost:5432/carddemo_test npm test
 ```
 
-The test runner migrates the isolated database itself and resets/seeds it before each integration test. Run `npm run cleanup` from a scheduler to remove expired sessions and idempotency/report records older than 30 days; normal reads do not rewrite sessions or extend the fixed eight-hour expiry.
+The test runner migrates the isolated database itself, verifies the server-selected database name, and runs destructive integration files serially before each reset/seed. Use `npm test` for the complete isolated suite, `npm run test:functional` for the migration/API workflow coverage, or `npm run test:guard` for the URL/server DB guard unit tests. Do not use bare `node --test` against the shared test database: its default parallel execution can race destructive fixtures. Functional test support is intentionally outside Node's default test glob. Run `npm run cleanup` from a scheduler to remove expired sessions and idempotency/report records older than 30 days; normal reads do not rewrite sessions or extend the fixed eight-hour expiry.
 
 ## Demo credentials
 

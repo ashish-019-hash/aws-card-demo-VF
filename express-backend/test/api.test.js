@@ -5,14 +5,15 @@ import { createPool, withTransaction } from '../src/db.js';
 import { createApp } from '../src/app.js';
 import { seed, signed } from '../src/import-data.js';
 import { createRepository } from '../src/repositories/carddemo.js';
+import { assertConnectedTestDatabase, validateTestDatabaseUrl } from '../scripts/test-db.js';
 
 const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error('DATABASE_URL must be set by scripts/test-db.js.');
+validateTestDatabaseUrl(databaseUrl);
 const pool = createPool({ connectionString: databaseUrl });
 let app;
 
 before(async () => {
-  await pool.query('SELECT 1');
+  await assertConnectedTestDatabase(pool, databaseUrl);
   app = createApp({ pool, sessionSecret: 'test-session-secret-that-is-long-enough-for-tests' });
 });
 beforeEach(async () => {
