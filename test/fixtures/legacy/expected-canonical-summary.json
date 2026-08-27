@@ -1,0 +1,13 @@
+{
+  "rows": { "users": 10, "customers": 50, "accounts": 50, "cards": 50, "xrefs": 50, "transactionTypes": 7, "categories": 18, "disclosureGroups": 51, "categoryBalances": 50, "transactions": 300 },
+  "accountAndCardStatus": "A",
+  "ficoWarnings": 21,
+  "nullProcessedTimestamps": 300,
+  "originalTimestamp": "2022-06-10 19:27:53.000000",
+  "accountSums": { "currentBalance": "12269.00", "creditLimit": "233711.00", "cashCreditLimit": "122148.00", "currentCycleCredit": "0.00", "currentCycleDebit": "0.00" },
+  "transaction": { "sum": "104801.54", "min": "-998.33", "max": "999.77", "negativeCount": 50, "minId": "0000000000683580", "maxId": "0000000996722787", "nextId": "0000000996722788" },
+  "disclosureInterestSum": "390.00",
+  "categoryBalanceSum": "0.00",
+  "account49": { "addressZip": "ZEROAPR   ", "groupId": "          " },
+  "mirror": { "ruleIds": ["CARDXREF_ASCII_FILLER_OMITTED", "ACCTDATA_00000000049_ADDRESS_ZIP", "DISCGRP_DEFAULT_07_0001_INTEREST_RATE"], "xrefNormalizations": 50, "fieldConflicts": 2, "unlistedDifferences": 0, "users": "missing" }
+}
