@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node scripts/test-db.js",
+    "test": "npm run test:unit && npm run test:guard && npm run test:harness && npm run test:db",
+    "test:unit": "node --test test/unit/*.test.js",
+    "test:guard": "node --test test/db-guard.test.js",
+    "test:functional": "node scripts/test-db.js functional/api-safety.mjs functional/financial-workflows.mjs functional/reports-admin.mjs functional/migration-replay.mjs functional/data-contract/import-and-ebcdic.mjs functional/data-contract/migrations-and-seed.mjs functional/data-contract/openapi-contract.mjs functional/data-contract/contract-fuzz.mjs functional/security-contract/api-errors-and-sessions.mjs functional/security-contract/global-u-policy.mjs functional/business/accounts-customers.mjs functional/business/cards.mjs functional/business/reports.mjs functional/business/admin-crud.mjs functional/business/cleanup-retention.mjs functional/concurrency/transactions-idempotency.mjs functional/concurrency/billing-atomicity.mjs functional/concurrency/admin-lock-order.mjs",
     "db:up": "docker compose up -d postgres && DATABASE_URL=${DATABASE_URL:-postgresql://carddemo:carddemo_local_only@localhost:5432/carddemo} node scripts/wait-for-db.js",
     "db:down": "docker compose down",
     "migrate": "DATABASE_URL=${DATABASE_URL:-postgresql://carddemo:carddemo_local_only@localhost:5432/carddemo} node scripts/migrate.js",
@@ -15,7 +18,12 @@
     "reset": "docker compose down -v && npm run db:up",
     "test:db:create": "docker compose exec -T postgres psql -U carddemo -d postgres -c 'CREATE DATABASE carddemo_test;' || true",
     "test:db:drop": "docker compose exec -T postgres psql -U carddemo -d postgres -c 'DROP DATABASE IF EXISTS carddemo_test;'",
-    "import": "npm run seed"
+    "import": "npm run seed",
+    "test:repeatability": "node scripts/repeat-functional.js",
+    "test:db": "node scripts/test-db.js",
+    "test:isolated-db:create": "node qa/bin/create-isolated-test-db.mjs",
+    "test:isolated-db:drop": "node qa/bin/drop-isolated-test-db.mjs",
+    "test:harness": "node --test test/harness/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -24,6 +32,7 @@
     "pg": "^8.23.0"
   },
   "devDependencies": {
-    "supertest": "^7.0.0"
+    "supertest": "^7.0.0",
+    "yaml": "^2.9.0"
   }
 }

@@ -11,9 +11,9 @@ const appError = (status, code, message, details) => Object.assign(new Error(mes
 const etag = value => `"${value.version}"`;
 const digits = (value, width, name) => { const result=id(value); if(!new RegExp(`^\\d{${width}}$`).test(result)) throw appError(422,'VALIDATION_ERROR',`${name} must be exactly ${width} characters.`); return result; };
 const dateOnly = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) && new Date(`${value}T00:00:00Z`).toISOString().slice(0,10) === value;
-const mask = value => value ? `${'*'.repeat(Math.max(0,String(value).length-4))}${String(value).slice(-4)}` : '';
-const publicAccount=({version,...v})=>v; const publicCard=({cvv,version,...v})=>v; const publicTransaction=({version,...v})=>v; const publicUser=({passwordHash,version,...v})=>v;
-const publicCustomer=({ssn,governmentId,eftAccountId,version,...v})=>({...v,ssn:mask(ssn),governmentId:mask(governmentId),eftAccountId:mask(eftAccountId)});
+export const mask = value => value ? `${'*'.repeat(Math.max(0,String(value).length-4))}${String(value).slice(-4)}` : '';
+export const publicAccount=({version,...v})=>v; export const publicCard=({cvv,version,...v})=>v; export const publicTransaction=({version,...v})=>v; export const publicUser=({passwordHash,version,...v})=>v;
+export const publicCustomer=({ssn,governmentId,eftAccountId,version,...v})=>({...v,ssn:mask(ssn),governmentId:mask(governmentId),eftAccountId:mask(eftAccountId)});
 const required=(body, fields)=>{const missing=fields.filter(k=>body[k]===undefined||body[k]===null||body[k]==='');if(missing.length)throw appError(422,'VALIDATION_ERROR','Required fields are missing.',{missing});};
 const stable=value=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map(k=>`${JSON.stringify(k)}:${stable(value[k])}`).join(',')}}`:JSON.stringify(value);
 const normalizeTimestamp = value => { const parsed = new Date(value); return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth()+1).padStart(2,'0')}-${String(parsed.getUTCDate()).padStart(2,'0')} ${String(parsed.getUTCHours()).padStart(2,'0')}:${String(parsed.getUTCMinutes()).padStart(2,'0')}:${String(parsed.getUTCSeconds()).padStart(2,'0')}.${String(parsed.getUTCMilliseconds()*1000).padStart(6,'0')}`; };
@@ -87,5 +87,5 @@ export function createApp({ pool = createPool(), repository = createRepository(p
     if(!count)throw appError(412,'VERSION_CONFLICT','Resource has changed; fetch it and retry.');
     res.status(204).end();
   }));
-  app.use((_q,_r,next)=>next(appError(404,'NOT_FOUND','Route not found.')));app.use((error,_req,res,_next)=>{const malformed=error instanceof SyntaxError&&'body'in error,invalidPath=error instanceof URIError;res.status(malformed||invalidPath?400:error.status||500).json({error:{code:malformed?'INVALID_JSON':invalidPath?'INVALID_PATH':error.code||'INTERNAL_ERROR',message:malformed?'Request body must be valid JSON.':invalidPath?'Path contains invalid URL encoding.':error.status?error.message:'An unexpected server error occurred.',...(error.details?{details:error.details}:{})}});}); return app;
+  app.use((_q,_r,next)=>next(appError(404,'NOT_FOUND','Route not found.')));app.use((error,_req,res,_next)=>{const malformed=error instanceof SyntaxError&&'body'in error,invalidPath=error instanceof URIError,payloadTooLarge=error?.type==='entity.too.large';res.status(payloadTooLarge?413:malformed||invalidPath?400:error.status||500).json({error:{code:payloadTooLarge?'PAYLOAD_TOO_LARGE':malformed?'INVALID_JSON':invalidPath?'INVALID_PATH':error.code||'INTERNAL_ERROR',message:payloadTooLarge?'Request body must not exceed 100kb.':malformed?'Request body must be valid JSON.':invalidPath?'Path contains invalid URL encoding.':error.status?error.message:'An unexpected server error occurred.',...(error.details?{details:error.details}:{})}});}); return app;
 }

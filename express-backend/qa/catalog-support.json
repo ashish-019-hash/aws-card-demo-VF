@@ -1,0 +1,9 @@
+{
+  "F-017": {
+    "status": "BLOCKED",
+    "severity": "P0",
+    "owner": "backend-authorization",
+    "target": "Define user-account authorization and reporting-domain model before scoping persisted report content.",
+    "rationale": "The current single-tenant/global-U policy permits interactive all-account access but does not define a safe user-account relation for persisted-report scoping."
+  }
+}
