@@ -27,5 +27,3 @@ test('report retrieval is owner-only and denied to administrators', async () => 
     assert.equal(response.body.error.message, 'Business endpoints require a U role.');
   });
 });
-
-test.todo('persisted report content excludes transactions outside the requester\'s authorized reporting domain once that domain is defined');

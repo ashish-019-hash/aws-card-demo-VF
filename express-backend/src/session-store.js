@@ -1,20 +1,20 @@
 import session from 'express-session';
 
 const clone = value => structuredClone(value);
-const expiration = sess => {
+const expiration = (sess, now) => {
   const expires = sess.cookie?.expires && Date.parse(sess.cookie.expires);
-  return new Date(Number.isFinite(expires) ? expires : Date.now() + (Number(sess.cookie?.maxAge) || 8 * 60 * 60 * 1000));
+  return new Date(Number.isFinite(expires) ? expires : now() + (Number(sess.cookie?.maxAge) || 8 * 60 * 60 * 1000));
 };
 
 export class PgSessionStore extends session.Store {
-  constructor(pool) { super(); this.pool = pool; }
+  constructor(pool, { now = () => Date.now() } = {}) { super(); this.pool = pool; this.now = now; }
 
   get(sid, callback) {
     this.pool.query('SELECT sess FROM sessions WHERE sid=$1 AND expires_at > now()', [sid])
       .then(result => callback(null, result.rows[0] ? clone(result.rows[0].sess) : null), callback);
   }
   set(sid, sess, callback = () => {}) {
-    this.pool.query('INSERT INTO sessions(sid,sess,expires_at) VALUES($1,$2,$3) ON CONFLICT(sid) DO UPDATE SET sess=EXCLUDED.sess,expires_at=EXCLUDED.expires_at', [sid, JSON.stringify(sess), expiration(sess)])
+    this.pool.query('INSERT INTO sessions(sid,sess,expires_at) VALUES($1,$2,$3) ON CONFLICT(sid) DO UPDATE SET sess=EXCLUDED.sess,expires_at=EXCLUDED.expires_at', [sid, JSON.stringify(sess), expiration(sess, this.now)])
       .then(() => callback(null), callback);
   }
   destroy(sid, callback = () => {}) {
