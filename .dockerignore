@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.git
+.env
+00.phase-1-input
+docs
+scripts
