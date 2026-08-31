@@ -19,7 +19,7 @@ NestJS API (/api/v1, /docs, /docs-json)
                             ASCII partial mirror verification
 ```
 
-The API, migration job, and worker use the same database configuration. Compose starts PostgreSQL, waits for it to become healthy, runs migrations once, then starts the API and worker. It does not import legacy data automatically. The container image deliberately excludes the immutable source tree; run the host-side importer command against a host-reachable database after the Compose stack is ready.
+The API, migration job, and worker use the same database configuration. Compose starts PostgreSQL, waits for it to become healthy, runs migrations once, then starts the API and worker. It does not import legacy data automatically. The `seed-dev` tool is a separate, development-only application context—not an API module—and requires a non-production environment plus `SEED_ALLOW_UNSAFE=true` before it bootstraps database access. The container image deliberately excludes the immutable source tree; run the host-side importer command against a host-reachable database after the Compose stack is ready. Changing `POSTGRES_PASSWORD` does not change an initialized PostgreSQL volume; reset only disposable local volumes.
 
 ## Source layout
 
@@ -41,10 +41,12 @@ The API, migration job, and worker use the same database configuration. Compose 
 │   └── verify-legacy-contract.py
 ├── src/
 │   ├── main.ts                       # API bootstrap
-│   ├── app.module.ts                 # root module and correlation middleware
+│   ├── app.module.ts                 # production API root module and correlation middleware
+│   ├── seed-app.module.ts            # isolated development seed application context
 │   ├── worker.ts                     # report-worker application context
 │   ├── cli/
-│   │   └── legacy-import.ts          # target standalone canonical/mirror importer
+│   │   ├── legacy-import.ts          # target standalone canonical/mirror importer
+│   │   └── seed-dev.ts               # explicit-opt-in development admin seed
 │   ├── common/
 │   │   ├── concurrency/              # expected-version helpers
 │   │   ├── cursor/                   # signed forward/backward keyset cursors
@@ -68,6 +70,7 @@ The API, migration job, and worker use the same database configuration. Compose 
 │       ├── payments/                 # atomic, version-aware bill payment
 │       ├── reports/                  # report jobs, artifact download, worker processing
 │       ├── legacy-import/            # layouts, decoders, parsers, validators, reconciliation
+│       ├── development-seed/         # isolated synthetic DEVADMIN seed service
 │       └── health/                   # liveness and database readiness
 ├── test/
 │   ├── fixtures/legacy/              # fixture manifest: hashes, counts, and widths
@@ -81,7 +84,7 @@ The API, migration job, and worker use the same database configuration. Compose 
 └── Makefile                          # local Docker and verification targets
 ```
 
-Some target directories are intentionally not present until their corresponding implementation phase lands. This is a target design, not a claim that all modules/routes are already implemented. The current source tree and Swagger document are authoritative for availability. The importer, auth/users, and reports paths are present; account/customer/card/transaction/payment controllers remain in progress.
+The current source tree and Swagger document are authoritative for availability. Auth/users, account/customer/card/transaction/payment, reports, health, importer, and isolated development-seed paths are present. Planned parity and end-to-end verification work remains outside this topology statement.
 
 ## Ownership and boundaries
 

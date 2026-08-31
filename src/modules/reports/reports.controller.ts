@@ -11,13 +11,22 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
-import { ApiAcceptedResponse, ApiOkResponse, ApiProduces, ApiTags } from '@nestjs/swagger';
+import { ApiJwtUnauthorizedResponse } from '../../common/openapi/problem-response';
+import {
+  ApiAcceptedResponse,
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiProduces,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CreateReportDto } from './dto/create-report.dto';
 import { ReportsService } from './reports.service';
 
 @ApiTags('reports')
 @Controller({ path: 'reports', version: '1' })
+@ApiBearerAuth('jwt')
+@ApiJwtUnauthorizedResponse()
 @UseGuards(JwtAuthGuard)
 export class ReportsController {
   constructor(private readonly reports: ReportsService) {}

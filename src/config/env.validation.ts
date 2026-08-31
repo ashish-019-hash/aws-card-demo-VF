@@ -1,5 +1,7 @@
 import * as Joi from 'joi';
 
+const secret = Joi.string().min(32).required();
+
 export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
   PORT: Joi.number().port().default(3000),
@@ -8,8 +10,10 @@ export const envValidationSchema = Joi.object({
     .required(),
   DATABASE_SSL: Joi.boolean().truthy('true').falsy('false').default(false),
   CORS_ORIGINS: Joi.string().default('http://localhost:3000'),
-  CURSOR_SECRET: Joi.string().min(32).required(),
-  JWT_SECRET: Joi.string().min(32).required(),
+  CURSOR_SECRET: secret,
+  JWT_SECRET: secret.invalid(Joi.ref('CURSOR_SECRET')).messages({
+    'any.invalid': 'JWT_SECRET must differ from CURSOR_SECRET',
+  }),
   JWT_EXPIRES_IN_SECONDS: Joi.number().integer().min(1).max(86400).default(900),
   REPORT_TIMESTAMP_MODE: Joi.string()
     .valid('processed-or-original', 'processed')

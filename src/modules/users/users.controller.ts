@@ -11,7 +11,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
+import {
+  ApiAdminForbiddenResponse,
+  ApiJwtUnauthorizedResponse,
+} from '../../common/openapi/problem-response';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
 import {
@@ -23,6 +28,9 @@ import {
 import { UsersService } from './users.service';
 
 @Controller({ path: 'users', version: '1' })
+@ApiBearerAuth('jwt')
+@ApiJwtUnauthorizedResponse()
+@ApiAdminForbiddenResponse()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('A')
 export class UsersController {

@@ -22,7 +22,10 @@
     "start:worker": "node dist/worker",
     "start:worker:dev": "nest start --entryFile worker --watch",
     "legacy-import": "ts-node src/cli/legacy-import.ts",
-    "legacy-import:dist": "node dist/cli/legacy-import.js"
+    "legacy-import:dist": "node dist/cli/legacy-import.js",
+    "seed:dev": "ts-node src/cli/seed-dev.ts",
+    "seed:dev:dist": "node dist/cli/seed-dev.js",
+    "seed:canonical": "npm run legacy-import -- --mode=canonical-ebcdic --source-path=00.phase-1-input/data"
   },
   "dependencies": {
     "@nestjs/common": "11.1.6",

@@ -1,8 +1,12 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiJwtUnauthorizedResponse } from '../../common/openapi/problem-response';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { UpdateAccountDto } from './dto/accounts.dto';
 import { AccountsService } from './accounts.service';
 @Controller({ path: 'accounts', version: '1' })
+@ApiBearerAuth('jwt')
+@ApiJwtUnauthorizedResponse()
 @UseGuards(JwtAuthGuard)
 export class AccountsController {
   constructor(private readonly accounts: AccountsService) {}

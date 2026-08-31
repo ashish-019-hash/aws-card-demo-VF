@@ -21,14 +21,13 @@ export function configuration(): AppConfig {
   return {
     nodeEnv: process.env.NODE_ENV ?? 'development',
     port: Number(process.env.PORT ?? 3000),
-    databaseUrl:
-      process.env.DATABASE_URL ?? 'postgresql://carddemo:carddemo@localhost:5432/carddemo',
+    databaseUrl: process.env.DATABASE_URL ?? '',
     databaseSsl: process.env.DATABASE_SSL === 'true',
     corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:3000')
       .split(',')
       .map((value) => value.trim()),
-    cursorSecret: process.env.CURSOR_SECRET ?? 'development-only-cursor-secret-change-me',
-    jwtSecret: process.env.JWT_SECRET ?? 'development-only-jwt-secret-change-me',
+    cursorSecret: process.env.CURSOR_SECRET ?? '',
+    jwtSecret: process.env.JWT_SECRET ?? '',
     jwtExpiresInSeconds: Number(process.env.JWT_EXPIRES_IN_SECONDS ?? 900),
     reportTimestampMode: (process.env.REPORT_TIMESTAMP_MODE ??
       'processed-or-original') as ReportTimestampMode,

@@ -1,4 +1,4 @@
-.PHONY: up down reset migrate import-ebcdic import-ascii test verify
+.PHONY: up down reset migrate seed seed-dev seed-canonical import-ebcdic import-ascii test verify
 
 up:
 	docker compose up --build -d
@@ -12,8 +12,17 @@ reset:
 migrate:
 	docker compose run --rm migrate
 
+# Development-only Docker seed; it requires APP_NODE_ENV=development and SEED_ALLOW_UNSAFE=true in .env.
+seed: seed-dev
+
+seed-dev:
+	docker compose --profile tools run --rm seed-dev
+
+# Runs on the host because the immutable legacy inputs are intentionally excluded from the image.
+seed-canonical: import-ebcdic
+
 import-ebcdic:
-	npm run legacy-import -- --mode=canonical-ebcdic --source-path=00.phase-1-input/data
+	npm run seed:canonical
 
 import-ascii:
 	npm run legacy-import -- --mode=ascii-mirror --source-path=00.phase-1-input/data
@@ -21,6 +30,7 @@ import-ascii:
 test:
 	npm test
 
+# Requires .env with POSTGRES_PASSWORD, CURSOR_SECRET, and JWT_SECRET; see README.
 verify:
 	npm run format:check
 	npm run lint

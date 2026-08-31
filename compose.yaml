@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: carddemo
       POSTGRES_USER: carddemo
-      POSTGRES_PASSWORD: carddemo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required; set it in .env}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -19,14 +19,15 @@ services:
     build: .
     command: ['node', 'dist/database/run-migrations.js']
     environment: &api-environment
-      NODE_ENV: production
+      NODE_ENV: ${APP_NODE_ENV:-production}
       PORT: 3000
-      DATABASE_URL: postgresql://carddemo:carddemo@postgres:5432/carddemo
+      DATABASE_URL: postgresql://carddemo:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required; set it in .env}@postgres:5432/carddemo
       DATABASE_SSL: 'false'
       CORS_ORIGINS: http://localhost:3000
-      CURSOR_SECRET: change-me-to-a-long-random-cursor-secret
-      JWT_SECRET: change-me-to-a-long-random-jwt-secret
-      REPORT_TIMESTAMP_MODE: processed-or-original
+      CURSOR_SECRET: ${CURSOR_SECRET:?CURSOR_SECRET is required and must be at least 32 characters}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required and must be at least 32 characters}
+      JWT_EXPIRES_IN_SECONDS: ${JWT_EXPIRES_IN_SECONDS:-900}
+      REPORT_TIMESTAMP_MODE: ${REPORT_TIMESTAMP_MODE:-processed-or-original}
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +58,19 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+
+  seed-dev:
+    build: .
+    command: ['node', 'dist/cli/seed-dev.js']
+    profiles: ['tools']
+    environment:
+      <<: *api-environment
+      SEED_ALLOW_UNSAFE: ${SEED_ALLOW_UNSAFE:-}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: 'no'
 
 volumes:
   postgres-data:

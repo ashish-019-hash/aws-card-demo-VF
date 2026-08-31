@@ -1,9 +1,10 @@
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ProblemDetailsFilter } from './common/errors/problem-details.filter';
 import { configuration } from './config/configuration';
+import { createOpenApiDocument } from './openapi';
 
 async function bootstrap(): Promise<void> {
   process.env.TZ = 'UTC';
@@ -17,10 +18,7 @@ async function bootstrap(): Promise<void> {
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
   app.useGlobalFilters(new ProblemDetailsFilter());
-  const document = SwaggerModule.createDocument(
-    app,
-    new DocumentBuilder().setTitle('CardDemo API').setVersion('1.0').addBearerAuth().build(),
-  );
+  const document = createOpenApiDocument(app);
   SwaggerModule.setup('docs', app, document, { jsonDocumentUrl: 'docs-json' });
   await app.listen(config.port);
   Logger.log(`CardDemo API listening on ${config.port}`, 'Bootstrap');

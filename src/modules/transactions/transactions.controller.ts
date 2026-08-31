@@ -1,8 +1,12 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiJwtUnauthorizedResponse } from '../../common/openapi/problem-response';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { CreateTransactionDto, ListTransactionsQueryDto } from './dto/transactions.dto';
 import { TransactionsService } from './transactions.service';
 @Controller({ path: 'transactions', version: '1' })
+@ApiBearerAuth('jwt')
+@ApiJwtUnauthorizedResponse()
 @UseGuards(JwtAuthGuard)
 export class TransactionsController {
   constructor(private readonly transactions: TransactionsService) {}
