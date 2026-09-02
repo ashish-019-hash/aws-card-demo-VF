@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1040" viewBox="0 0 1500 1040" role="img" aria-labelledby="title desc">
+  <title id="title">Validation rule dependencies</title>
+  <desc id="desc">Groups account and customer, card, user and navigation, transaction, report, and shared date validation rules. Lines show conditional and shared-field dependencies.</desc>
+  <style>
+    text { font-family: Arial, sans-serif; fill: #172033; }
+    .title { font-size: 24px; font-weight: 700; }
+    .subtitle { font-size: 13px; fill: #526075; }
+    .group { stroke-width: 2; rx: 14; }
+    .account { fill: #eef6ff; stroke: #4385c5; }
+    .card { fill: #f4efff; stroke: #8064c4; }
+    .transaction { fill: #effaf3; stroke: #43966b; }
+    .report { fill: #fff7e7; stroke: #bd8b2e; }
+    .user { fill: #fff0f1; stroke: #bc5362; }
+    .shared { fill: #f0f3f7; stroke: #65748a; }
+    .node { fill: #fff; stroke: #62748a; stroke-width: 1.5; rx: 8; }
+    .nodeText { font-size: 13px; font-weight: 600; }
+    .small { font-size: 12px; font-weight: 400; }
+    .groupTitle { font-size: 17px; font-weight: 700; }
+    .edge { stroke: #526075; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+    .conditional { stroke-dasharray: 6 5; }
+    .label { font-size: 11px; fill: #526075; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#526075"/>
+    </marker>
+  </defs>
+
+  <text x="36" y="38" class="title">Validation dependencies</text>
+  <text x="36" y="60" class="subtitle">Rule IDs refer to validation-rules.md. Solid arrows denote shared validation; dashed arrows denote a condition that must be satisfied before the target rule runs.</text>
+
+  <rect x="30" y="90" width="455" height="410" class="group account"/>
+  <text x="50" y="120" class="groupTitle">Account &amp; customer maintenance</text>
+  <rect x="55" y="142" width="185" height="58" class="node"/><text x="68" y="166" class="nodeText">VAL-001 / VAL-002</text><text x="68" y="185" class="small">Account required, numeric, non-zero</text>
+  <rect x="270" y="142" width="185" height="58" class="node"/><text x="283" y="166" class="nodeText">VAL-003 / VAL-013</text><text x="283" y="185" class="small">Y/N account and holder flags</text>
+  <rect x="55" y="225" width="185" height="62" class="node"/><text x="68" y="249" class="nodeText">VAL-004</text><text x="68" y="268" class="small">Required signed monetary values</text>
+  <rect x="270" y="225" width="185" height="62" class="node"/><text x="283" y="249" class="nodeText">VAL-005 / VAL-039</text><text x="283" y="268" class="small">Calendar date; DOB strictly past</text>
+  <rect x="55" y="312" width="185" height="62" class="node"/><text x="68" y="336" class="nodeText">VAL-006 / VAL-007</text><text x="68" y="355" class="small">FICO range; name presence/alpha</text>
+  <rect x="270" y="312" width="185" height="62" class="node"/><text x="283" y="336" class="nodeText">VAL-008</text><text x="283" y="355" class="small">Address, ZIP, EFT field domains</text>
+  <rect x="55" y="399" width="185" height="70" class="node"/><text x="68" y="423" class="nodeText">VAL-009 → VAL-010</text><text x="68" y="442" class="small">State code then state/ZIP prefix</text><text x="68" y="458" class="small">cross-field validation</text>
+  <rect x="270" y="399" width="185" height="70" class="node"/><text x="283" y="423" class="nodeText">VAL-011 / VAL-012</text><text x="283" y="442" class="small">Optional phone structure; SSN</text><text x="283" y="458" class="small">component rules</text>
+  <path d="M362 287 L362 312" class="edge conditional"/><text x="370" y="304" class="label">valid date components</text>
+  <path d="M147 374 L147 399" class="edge conditional"/><text x="154" y="391" class="label">state valid</text>
+  <path d="M240 343 L270 343" class="edge"/><text x="243" y="334" class="label">state/ZIP fields</text>
+
+  <rect x="520" y="90" width="420" height="260" class="group card"/>
+  <text x="540" y="120" class="groupTitle">Card search, list &amp; maintenance</text>
+  <rect x="545" y="145" width="170" height="58" class="node"/><text x="558" y="169" class="nodeText">VAL-014</text><text x="558" y="188" class="small">Account filter</text>
+  <rect x="745" y="145" width="170" height="58" class="node"/><text x="758" y="169" class="nodeText">VAL-015</text><text x="758" y="188" class="small">Card filter</text>
+  <rect x="545" y="228" width="170" height="58" class="node"/><text x="558" y="252" class="nodeText">VAL-016</text><text x="558" y="271" class="small">One valid list action</text>
+  <rect x="745" y="228" width="170" height="84" class="node"/><text x="758" y="252" class="nodeText">VAL-017 / 018 / 019 / 020</text><text x="758" y="271" class="small">Changed card: name, status,</text><text x="758" y="288" class="small">expiry month and year</text>
+  <path d="M630 203 L630 228" class="edge conditional"/><text x="639" y="219" class="label">filters valid</text>
+  <path d="M830 203 L830 228" class="edge conditional"/><text x="839" y="219" class="label">record fetched and changed</text>
+
+  <rect x="975" y="90" width="495" height="260" class="group user"/>
+  <text x="995" y="120" class="groupTitle">User, billing &amp; navigation</text>
+  <rect x="1000" y="145" width="135" height="65" class="node"/><text x="1013" y="169" class="nodeText">VAL-021</text><text x="1013" y="188" class="small">Menu option range</text><text x="1013" y="204" class="small">and numeric check</text>
+  <rect x="1160" y="145" width="135" height="65" class="node"/><text x="1173" y="169" class="nodeText">VAL-022</text><text x="1173" y="188" class="small">Dormant access branch</text><text x="1173" y="204" class="small">(current config is U)</text>
+  <rect x="1320" y="145" width="125" height="65" class="node"/><text x="1333" y="169" class="nodeText">VAL-023</text><text x="1333" y="188" class="small">User required</text><text x="1333" y="204" class="small">fields</text>
+  <rect x="1080" y="245" width="180" height="58" class="node"/><text x="1093" y="269" class="nodeText">VAL-026</text><text x="1093" y="288" class="small">Billing account and Y/N confirm</text>
+  <path d="M1135 177 L1160 177" class="edge conditional"/><text x="1138" y="166" class="label">valid option; A-configured</text>
+
+  <rect x="1005" y="380" width="465" height="135" class="group user"/>
+  <text x="1025" y="410" class="groupTitle">Sign-on &amp; user identity integrity</text>
+  <rect x="1030" y="430" width="185" height="58" class="node"/><text x="1043" y="454" class="nodeText">VAL-024</text><text x="1043" y="473" class="small">New user ID must be unique</text>
+  <rect x="1250" y="430" width="185" height="58" class="node"/><text x="1263" y="454" class="nodeText">VAL-025</text><text x="1263" y="473" class="small">Sign-on ID and password required</text>
+  <path d="M1100 210 C1100 300, 1110 360, 1122 430" class="edge conditional"/><text x="1128" y="360" class="label">user-add input valid</text>
+
+  <rect x="30" y="540" width="940" height="420" class="group transaction"/>
+  <text x="50" y="570" class="groupTitle">Transaction processing</text>
+  <rect x="55" y="595" width="175" height="58" class="node"/><text x="68" y="619" class="nodeText">VAL-027 / VAL-028</text><text x="68" y="638" class="small">Transaction selection and view ID</text>
+  <rect x="260" y="595" width="175" height="58" class="node"/><text x="273" y="619" class="nodeText">VAL-029</text><text x="273" y="638" class="small">Y/N add confirmation</text>
+  <rect x="465" y="595" width="175" height="58" class="node"/><text x="478" y="619" class="nodeText">VAL-030</text><text x="478" y="638" class="small">Account or card key required</text>
+  <rect x="670" y="595" width="265" height="58" class="node"/><text x="683" y="619" class="nodeText">VAL-031</text><text x="683" y="638" class="small">Required transaction and merchant fields</text>
+  <rect x="55" y="700" width="175" height="58" class="node"/><text x="68" y="724" class="nodeText">VAL-032</text><text x="68" y="743" class="small">Type/category numeric</text>
+  <rect x="260" y="700" width="175" height="58" class="node"/><text x="273" y="724" class="nodeText">VAL-033</text><text x="273" y="743" class="small">Signed amount format</text>
+  <rect x="465" y="700" width="175" height="58" class="node"/><text x="478" y="724" class="nodeText">VAL-034</text><text x="478" y="743" class="small">Date format and calendar date</text>
+  <rect x="670" y="700" width="175" height="58" class="node"/><text x="683" y="724" class="nodeText">VAL-035</text><text x="683" y="743" class="small">Merchant ID numeric</text>
+  <rect x="260" y="815" width="380" height="62" class="node shared"/><text x="273" y="839" class="nodeText">Shared dependency: transaction required-field success</text><text x="273" y="858" class="small">VAL-031 supplies nonblank inputs before format/domain rules run</text>
+  <rect x="670" y="815" width="240" height="62" class="node"/><text x="683" y="839" class="nodeText">VAL-036</text><text x="683" y="858" class="small">Created transaction ID is unique</text>
+  <path d="M802 653 L142 700" class="edge conditional"/><path d="M802 653 L347 700" class="edge conditional"/><path d="M802 653 L552 700" class="edge conditional"/><path d="M802 653 L757 700" class="edge conditional"/>
+  <path d="M142 758 L350 815" class="edge"/><path d="M347 758 L400 815" class="edge"/><path d="M552 758 L465 815" class="edge"/><path d="M757 758 L530 815" class="edge"/>
+  <path d="M552 653 L790 815" class="edge conditional"/><text x="658" y="735" class="label">confirmed create</text>
+
+  <rect x="1005" y="540" width="465" height="220" class="group report"/>
+  <text x="1025" y="570" class="groupTitle">Reporting</text>
+  <rect x="1030" y="600" width="195" height="65" class="node"/><text x="1043" y="624" class="nodeText">VAL-037</text><text x="1043" y="643" class="small">Custom start/end date</text><text x="1043" y="659" class="small">presence, numeric, upper bounds</text>
+  <rect x="1260" y="600" width="180" height="65" class="node shared"/><text x="1273" y="624" class="nodeText">Custom selector</text><text x="1273" y="643" class="small">CUSTOMI populated</text><text x="1273" y="659" class="small">enables VAL-037</text>
+  <rect x="1135" y="685" width="200" height="52" class="node"/><text x="1148" y="708" class="nodeText">VAL-038</text><text x="1148" y="725" class="small">Report Y/N confirmation</text>
+  <path d="M1260 632 L1225 632" class="edge conditional"/>
+  <path d="M1127 665 L1195 685" class="edge conditional"/><text x="1050" y="682" class="label">validated report</text>
+
+  <rect x="1005" y="800" width="465" height="160" class="group shared"/>
+  <text x="1025" y="830" class="groupTitle">Shared field-domain dependencies</text>
+  <text x="1030" y="860" class="small">• `CSLKPCDY.cpy` supplies recognized area codes, state codes, and state/ZIP prefixes for VAL-009–VAL-011.</text>
+  <text x="1030" y="885" class="small">• `CSUTLDPY.cpy` and `CSUTLDWY.cpy` supply account calendar dates and the strict-past DOB check for VAL-005/VAL-039.</text>
+  <text x="1030" y="910" class="small">• `CSUTLDTC.cbl` supplies transaction calendar-date service validation for VAL-034.</text>
+  <path d="M455 256 C650 410, 900 430, 1120 800" class="edge conditional"/><text x="750" y="438" class="label">calendar date and strict-past DOB</text>
+  <path d="M552 758 C700 790, 830 815, 1005 875" class="edge conditional"/><text x="760" y="790" class="label">calendar service used by transaction dates</text>
+</svg>
