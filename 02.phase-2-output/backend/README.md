@@ -3,6 +3,7 @@
 A Spring Boot / H2 modernization of the CardDemo user journeys. Controllers are thin REST adapters over `CardDemoApplicationService`; persistence entities never cross the HTTP boundary. Step 8 adds the requirements-traceable JUnit, API, workflow, seed, report, and OpenAPI verification suite.
 
 - Requirements-to-tests matrix: [`docs/test-traceability.md`](docs/test-traceability.md)
+- Deterministic local QA scenarios and access/reset steps: [`docs/manual-test-data.md`](docs/manual-test-data.md)
 - Java: 21
 - Build runtime: Docker with Maven 3.9.9 / Eclipse Temurin 21
 
