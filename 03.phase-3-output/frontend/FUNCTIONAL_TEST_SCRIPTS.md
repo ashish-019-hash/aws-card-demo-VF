@@ -14,17 +14,12 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 ## Common prerequisites
 
-1. Start the frontend and its configured backend, and open the application at `/sign-in`.
-2. Reset test data, then load the data pack in [FUNCTIONAL_TEST_DATA.md](FUNCTIONAL_TEST_DATA.md).
-3. Ensure these accounts exist:
-   - **STDUSER / PASS1234** — a valid standard user (`USER`).
-   - **ADMIN01 / ADMIN123** — a valid administrator (`ADMINISTRATOR`).
-   - **11111111111 / 4111111111111111** — positive-balance account/card with linked customer; balance `+125.50`.
-   - **22222222222 / 4222222222222222** — zero-balance account/card.
-   - **33333333333 / 4333333333333333** — negative-balance account/card.
-   - At least 11 cards, 11 transactions, and 11 users, so both page directions can be tested.
-4. Capture original account/card/customer values and versions before any update. Use unique values prefixed `FT-` for created transactions/users.
-5. Where a script says **fault inject**, arrange the stated backend response only for that step, then remove the fault before cleanup.
+1. Start the frontend and configured backend, then open `/sign-in`.
+2. Reset the backend with `--carddemo.database.reset=true` (or an equivalent approved local reset). Load the data pack in [FUNCTIONAL_TEST_DATA.md](FUNCTIONAL_TEST_DATA.md).
+3. Use actual default seed credentials: **USER0001 / USER123** (standard) and **ADMIN001 / ADMIN123** (administrator). Account **`1`** / card **`0500024453765740`** is a linked positive-balance seed (`194.00`); transaction **`0000000000000000`** is known. The seed supplies 50 cards/accounts and 300 transactions, but only two users.
+4. Capture original account/card/customer values and versions before updating. Create test users only during their create scripts, with a unique 8-character-or-shorter `FT...` ID; these are not seed fixtures.
+5. The default seed has positive balances only. Use account `1` for the positive payment path. For zero/negative paths, set a separate linked account to `0.00`/`-1.00` through Account maintenance, test, then restore it. If policy forbids that, record **Blocked—no zero/negative balance fixture**; do not invent account IDs.
+6. Where a script says **fault inject**, use an approved test control for that one step. If none exists, mark that scenario Blocked and remove the fault afterwards.
 
 ### Common expected-result conventions
 
@@ -33,6 +28,10 @@ Run every script against a resettable, non-production environment. Execute API/e
 - **Error:** an error/validation message identifies the failed request or field. Where the source specifies wording, verify that wording (or its explicitly equivalent modern UI message).
 - **Pagination boundary:** the current page remains valid and the top/bottom condition is explained.
 
+## Result recording
+
+For every executable numbered step, record one run-log result as `<test ID>-S<step number>` (for example, `FT-FE-012-S03`) with **Pass / Fail / Blocked / N/A**, tester/date, route, actual message, and created/request ID where relevant. The signed-in scenario table uses explicit IDs. A stated modern-stack gap must be logged **N/A** with evidence; it is never a pass.
+
 ## Reusable procedures
 
 ### RP-01 — Sign in and navigation setup
@@ -40,7 +39,7 @@ Run every script against a resettable, non-production environment. Execute API/e
 1. Open `/sign-in`; enter credentials; submit.
 2. For a standard user, verify the dashboard/main menu offers Account lookup/maintenance, Card list/lookup/maintenance, Transaction list/lookup/add, Reports, and Bill payment.
 3. For an administrator, verify the administrator navigation exposes User list/add/update/delete.
-4. Use navigation links or the browser route only after a successful sign-in. For legacy PF-key acceptance criteria, use the deployed terminal-compatible control if present; otherwise record it as a platform-navigation verification against the route described by `screen-flow.md`.
+4. Use visible navigation links and routes only after sign-in. Legacy PF-key/menu-entry behavior is not implemented in this React UI; record it as a gap, not as an executed equivalent.
 
 ### RP-02 — Re-query persistence
 
@@ -63,51 +62,46 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Covers:** STORY-001, ENTITY-010, RULE-VAL-025
 
-**Prerequisites:** Common prerequisites; `STDUSER` and `ADMIN01` exist. Configure one stored password with mixed case if the fixture supports it.
+**Prerequisites:** Common prerequisites; use `USER0001` and `ADMIN001`. Exercise normalization with lowercase entry of these uppercase seeded credentials.
 
 | Scenario | Steps | Expected result |
 |---|---|---|
-| Positive standard user | Enter `stduser` / `pass1234`; submit. | User ID and password are uppercased before verification; sign-in succeeds and opens the standard dashboard/menu. |
-| Positive administrator | Sign out. Enter `admin01` / `admin123`; submit. | Sign-in succeeds and opens the administration menu. |
-| Negative missing user ID | Clear User ID, enter a password, submit. | Missing User ID is identified; remain on sign-in; no authentication request succeeds. |
-| Negative missing password | Enter User ID, clear Password, submit. | Missing Password is identified; remain on sign-in. |
-| Negative unknown user | Enter an unprovisioned ID with any password; submit. | `User not found. Try again ...` outcome; remain on sign-in. |
-| Negative bad password | Enter a known user with a wrong password; submit. | `Wrong Password. Try again ...` outcome; remain on sign-in. |
-| Error path | Fault inject verification/read failure; submit valid credentials. | `Unable to verify the User ...` outcome; remain on sign-in; no session is established. |
-| Navigation boundary | Trigger an unsupported sign-on action/key, then use sign-out/PF3-equivalent. | Invalid-key response for unsupported action; exit returns to unauthenticated/sign-on state. |
+| FT-FE-001-S01 Positive standard user | Enter `user0001` / `user123`; submit. | User ID/password are uppercased before verification; sign-in succeeds and opens standard dashboard. |
+| FT-FE-001-S02 Positive administrator | Sign out. Enter `admin001` / `admin123`; submit. | Sign-in succeeds and opens administration dashboard. |
+| FT-FE-001-S03 Negative missing user ID | Clear User ID, enter a password, submit. | Missing User ID is identified; remain on sign-in; no authentication request succeeds. |
+| FT-FE-001-S04 Negative missing password | Enter User ID, clear Password, submit. | Missing Password is identified; remain on sign-in. |
+| FT-FE-001-S05 Negative unknown user | Enter an unprovisioned ID with any password; submit. | `User not found. Try again ...` outcome; remain on sign-in. |
+| FT-FE-001-S06 Negative bad password | Enter a known user with a wrong password; submit. | `Wrong Password. Try again ...` outcome; remain on sign-in. |
+| FT-FE-001-S07 Error path | Fault inject verification/read failure; submit valid credentials. | `Unable to verify the User ...` outcome; remain on sign-in; no session is established. |
+| FT-FE-001-S08 Navigation gap | Use visible Sign out. | Sign out is executable; unsupported sign-on action/PF3 is N/A—unimplemented modern-stack control. |
 
 **Cleanup:** Sign out and clear the injected failure.
 
-### FT-FE-002 — Select main-menu capability and reject invalid/unauthorized selection
+### FT-FE-002 — Select main-menu capability
 
-**Covers:** STORY-002, RULE-VAL-021, RULE-VAL-022
+**Covers:** STORY-002; visible route coverage. RULE-VAL-021 and RULE-VAL-022 are N/A gaps.
 
-**Prerequisites:** Sign in as `STDUSER` using RP-01.
+**Prerequisites:** Sign in as `USER0001` using RP-01.
 
-1. Verify all ten configured main capabilities are present and route to the screens in the following order: account view, account update, card list, card view, card update, transaction list, transaction view, transaction add, reports, and bill payment.
-2. For every option/route, return to the dashboard and verify the destination screen header and intended fields.
-3. In a terminal-compatible menu, submit blank, `0`, `ABC`, and `11`; otherwise invoke the application's equivalent invalid navigation test route/control.
-4. Verify each invalid selection reports `Please enter a valid option number...` and stays on the main menu.
-5. Validate the configuration-dependent admin-only branch with a fixture where a main-menu option has required type `A`; select it as `STDUSER`.
-6. Use PF3/sign-out navigation.
+1. Verify all ten configured main navigation links reach their intended routes/screens.
+2. Return to the dashboard after each and verify the destination header/primary fields.
+3. Sign out using the visible control.
 
-**Expected result:** Valid options navigate correctly. Invalid option values do not navigate. The configuration-dependent selection returns `No access - Admin Only option...`. The supplied ten-option configuration does not expose an admin-only option, so record this as a fixture/configuration test, not a normally reachable path.
+**Expected result:** Visible routes are executable. Numeric menu entry/range validation (RULE-VAL-021), configuration-dependent admin-only selection (RULE-VAL-022), and PF3 are **N/A—unimplemented modern-stack controls**; do not mark them P/N/B.
 
-**Cleanup:** Restore the supplied menu configuration and sign out.
+**Cleanup:** Sign out.
 
 ### FT-FE-003 — Select administration capability
 
-**Covers:** STORY-003, RULE-VAL-021
+**Covers:** STORY-003; visible route coverage. RULE-VAL-021 is N/A.
 
-**Prerequisites:** Sign in as `ADMIN01`.
+**Prerequisites:** Sign in as `ADMIN001`.
 
-1. Verify the administration menu offers User List, User Add, User Update, and User Delete.
-2. Open each capability and verify the corresponding page is reached; return after each.
-3. Submit blank, `0`, `X`, and `5` through a terminal-compatible menu control/equivalent invalid-selection harness.
-4. Verify `Please enter a valid option number...` and that the administration menu stays available.
-5. Test unsupported action and PF3/sign-out navigation.
+1. Verify User List, User Add, User Update, and User Delete links route to their corresponding pages.
+2. Return after each and verify the screen header.
+3. Sign out using the visible control.
 
-**Expected result:** Options `1`–`4` route correctly; invalid or unsupported input stays on the menu; PF3 returns to sign-on.
+**Expected result:** Four visible routes are executable. Numeric menu validation, unsupported key behavior, and PF3 are **N/A—unimplemented modern-stack controls**.
 
 **Cleanup:** Sign out.
 
@@ -119,14 +113,14 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Covers:** STORY-004, ENTITY-001 through ENTITY-004, RULE-VAL-014
 
-**Prerequisites:** Sign in as `STDUSER`; use account `11111111111` with a linked card/customer.
+**Prerequisites:** Sign in as `USER0001`; use account `1` with a linked card/customer.
 
-1. Navigate to **Account lookup**, enter `11111111111`, and submit.
+1. Navigate to **Account lookup**, enter `1`, and submit.
 2. Verify account ID, status, current balance, limits, lifecycle dates, linked-card list, customer name/address/phone/FICO values agree with the prepared fixture.
 3. Follow a linked-card detail link and verify it is the card assigned to that account.
 4. Retry with blank, `0`, alphabetic, and a numeric nonexistent account ID.
 5. Fault inject, separately, missing account, assignment, account data, and customer data responses.
-6. Test return/PF3-equivalent navigation.
+6. Use visible navigation to return. PF3 is N/A—unimplemented.
 
 **Expected result:** The valid consolidated relationship displays. Blank/invalid input stays on inquiry; missing relationship/data reports a lookup failure and never displays stale or unrelated records. Return reaches the calling menu.
 
@@ -136,10 +130,10 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Covers:** STORY-005, ENTITY-001, ENTITY-002, RULE-VAL-001 through RULE-VAL-013, RULE-VAL-039
 
-**Prerequisites:** `11111111111`; capture baseline values/versions; use valid data from DATA-ACCT-VALID.
+**Prerequisites:** `1`; capture baseline values/versions; use valid data from DATA-ACCT-VALID.
 
 1. Open **Account maintenance**; submit blank and then `00000000000`/nonnumeric ID. Verify lookup is blocked (RULE-VAL-001/002).
-2. Retrieve `11111111111`; verify original account/customer values are populated before editing.
+2. Retrieve `1`; verify original account/customer values are populated before editing.
 3. Submit without changing any maintained value.
 4. Change only a safe field (for example address line 2), save, then execute RP-02.
 5. Change a second valid account/customer field set from DATA-ACCT-VALID; save and re-query.
@@ -155,7 +149,7 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Covers:** STORY-005, RULE-VAL-003 through RULE-VAL-013, RULE-VAL-039
 
-**Prerequisites:** Retrieve `11111111111` and alter one otherwise valid field so validation runs. Execute the exact vectors in `FUNCTIONAL_TEST_DATA.md` section **Account/customer vectors**, resetting the form to valid baseline between vectors.
+**Prerequisites:** Retrieve `1` and alter one otherwise valid field so validation runs. Execute the exact vectors in `FUNCTIONAL_TEST_DATA.md` section **Account/customer vectors**, resetting the form to valid baseline between vectors.
 
 1. Apply each invalid/boundary vector to the named field(s); submit.
 2. Verify a field-specific/corrective error, retained input, and no persistence using RP-02.
@@ -170,22 +164,21 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 ## Module C — Cards
 
-### FT-FE-007 — Browse/filter/select cards and page boundaries
+### FT-FE-007 — Browse/filter cards and page boundaries
 
-**Covers:** STORY-006, ENTITY-003, ENTITY-004, RULE-VAL-014 through RULE-VAL-016
+**Covers:** STORY-006, ENTITY-003/004, RULE-VAL-014/015. RULE-VAL-016 is N/A.
 
-**Prerequisites:** Sign in as `STDUSER`; card fixture has more than one page.
+**Prerequisites:** Sign in as `USER0001`; default seed supplies multiple card pages.
 
-1. Open **Credit cards** without filters; verify a multi-row page and current page indicator.
-2. Search using valid account-only, card-only, and account-plus-card fixture values. Verify only matching cards appear.
-3. Search using alphabetic account/card values. Test blank/zero optional filters as omitted filters.
-4. Move Next until final page and select Next again; move Previous until first page and select Previous again.
-5. In a terminal-compatible list/equivalent action harness, select exactly one row with `S`, then with `U`; verify detail and update destinations.
-6. Submit two row actions and separately an unsupported action code.
+1. Open **Credit cards** without filters and verify a multi-row page/current page indicator.
+2. Search valid account-only, card-only, and account-plus-card seeded values; verify matches only.
+3. Search alphabetic account/card; test blank/zero optional filters as omitted filters.
+4. Use visible Next/Previous until each disabled boundary; verify no move past the boundary.
+5. Open a displayed card using its number link and use **Maintain this card** from detail.
 
-**Expected result:** Valid filters/page navigation work; invalid supplied identifiers produce an error without losing retry ability. Page boundary is explained. `S` opens card detail and `U` opens maintenance. Multiple actions or codes other than allowed action/blank are rejected.
+**Expected result:** Filters, native page boundaries, and links work. `S`/`U` row-action code, multiple selection, and invalid action handling in RULE-VAL-016 are **N/A—unimplemented row-action UI**; do not report P/N/B coverage.
 
-**Cleanup:** Return to card list; no data changes expected.
+**Cleanup:** Return to card list; no data changes.
 
 ### FT-FE-008 — Look up card details and handle not found
 
@@ -194,9 +187,9 @@ Run every script against a resettable, non-production environment. Execute API/e
 **Prerequisites:** Valid account/card fixture.
 
 1. From the card list, open a displayed card; verify number, linked account, name, status, expiry, and CVV are for the selected card.
-2. Use **Card lookup** with `4111111111111111`; verify the same detail.
+2. Use **Card lookup** with `0500024453765740`; verify the same detail.
 3. Test malformed account/card values, blank/zero optional search values, account-plus-card mismatch, unknown account, and unknown card.
-4. Trigger unsupported action and return/PF3-equivalent navigation.
+4. Use visible Back/navigation controls. Unsupported action/PF3 is N/A—unimplemented.
 
 **Expected result:** A found record displays only matching detail; invalid/not-found searches stay recoverable and never retain another card's data.
 
@@ -206,13 +199,13 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Covers:** STORY-008, ENTITY-003, RULE-VAL-015, RULE-VAL-017 through RULE-VAL-020
 
-**Prerequisites:** Capture card `4111111111111111` baseline/version.
+**Prerequisites:** Capture card `0500024453765740` baseline/version.
 
 1. Open **Card maintenance**; retrieve the card. Test blank/non-numeric/non-16-digit identifier before retrieval.
 2. Submit unchanged data and verify no update/no-change response.
 3. Update embossed name to a valid alphabetic name, status to `N`, expiry to `2099-12-31`; save and run RP-02.
-4. Individually test blank/nonalphabetic name, blank/`X` status, expiry month `00`/`13`, and expiry year `1949`/`2100`; submit each.
-5. Test valid boundaries: expiry month `01` and `12`; year `1950` and `2099`.
+4. Test blank/nonalphabetic name and blank/`X` status. Test native-date values the browser permits.
+5. Mark typed malformed native date/month/year vectors as **API-level/UI-unreachable** in normal `input[type=date]`; do not report them as manual UI execution.
 6. In a concurrent second session, update the card first, then submit a stale update in the first session.
 
 **Expected result:** Only valid changed data persists. Invalid data remains correctable with an explanatory error. Unchanged data is not written. Stale update does not overwrite the current card; current details are reloaded/returned.
@@ -223,34 +216,34 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 ## Module D — Transactions
 
-### FT-FE-010 — Browse/select transactions and view details
+### FT-FE-010 — Browse transactions and view details
 
-**Covers:** STORY-009, STORY-010, ENTITY-005, RULE-VAL-027, RULE-VAL-028
+**Covers:** STORY-009, STORY-010, ENTITY-005, filter half of RULE-VAL-027, RULE-VAL-028. Selection-code half of RULE-VAL-027 is N/A.
 
-**Prerequisites:** More than one page of transactions; known transaction `9000000000000001`.
+**Prerequisites:** Default seed supplies multiple pages; known transaction `0000000000000000`.
 
-1. Open **Transactions** with no filter; verify page contents. Search using a numeric transaction ID and verify list begins/matches as configured.
-2. Test nonnumeric filter and an invalid selection action via list action harness.
-3. Navigate next/previous to both boundaries; verify top/bottom feedback and a valid page remains.
-4. Select a row with `S`; verify transaction detail displays ID, card, type/category, source, amount, description, origin/processing dates, merchant ID/name/city/ZIP.
-5. Open **Transaction lookup**; submit blank, unknown ID, and known ID. Use Clear/PF4-equivalent and Return to list/PF5-equivalent.
+1. Open **Transactions**; search a numeric transaction ID and verify matching/list behavior.
+2. Test a nonnumeric filter.
+3. Use visible Previous/Next controls to both disabled page boundaries.
+4. Open a row with its transaction-ID link and verify all displayed financial, source, date, and merchant fields.
+5. In **Transaction lookup**, submit blank, unknown, and known ID; return using visible navigation.
 
-**Expected result:** Only `S`/`s` selection opens the selected detail. Invalid selection says `Invalid selection. Valid value is S`; nonnumeric filter stays recoverable. Blank direct lookup says `Tran ID can NOT be empty...`; unknown/read failure does not show unrelated data.
+**Expected result:** Filter validation and visible detail links are executable. `S`/`s` selection-code validation is **N/A—unimplemented modern-stack control**, so no selection-code P/N/B claim is made. PF4/PF5 are also N/A.
 
-**Cleanup:** No data change expected.
+**Cleanup:** No data changes.
 
 ### FT-FE-011 — Add transaction, derive identifiers, confirm, and enforce uniqueness
 
 **Covers:** STORY-011, ENTITY-005, ENTITY-004, ENTITY-006, ENTITY-007, RULE-VAL-029 through RULE-VAL-036
 
-**Prerequisites:** Valid DATA-TRAN-VALID input; capture highest transaction ID; fixture permits confirming created transaction and checking count.
+**Prerequisites:** Valid DATA-TRAN-VALID input; capture highest transaction ID; the local environment permits re-querying the created transaction and count.
 
 1. Create a valid transaction using account ID only, confirmation `Y`; verify a new ID follows the prior highest ID, card is resolved from the assignment, and all submitted data persists.
 2. Create a valid transaction using card number only; verify account resolution and persistence.
 3. Submit both identifiers and verify account precedence/resolved relationship behavior according to the deployed backend.
 4. Submit valid data with blank, `N`, and `X` confirmation. Verify blank/N do not create and `X` is rejected.
 5. Execute each vector in **Transaction-add vectors** in the data pack: absent/non-numeric identifiers, each required field blank, nonnumeric type/category/merchant ID, amount format boundaries, invalid and leap-date cases.
-6. Invoke PF5/copy-latest equivalent with valid copied values and `Y`; verify it follows the add path and creates a new transaction, not merely a preview. Re-run with blank confirmation; verify it prompts/no create.
+6. PF5/copy-latest is **N/A—unimplemented**; do not use an imaginary equivalent/harness.
 7. Fault inject duplicate-key allocation/write response during a valid add.
 
 **Expected result:** Exactly one new, unique transaction is created only after valid input and `Y`/`y`. All failure/confirmation paths create none. An attempted duplicate key is rejected. Corrected valid data succeeds.
@@ -261,22 +254,21 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 ## Module E — Bill payment
 
-### FT-FE-012 — Pay full positive balance and reject non-payable/cancelled payment
+### FT-FE-012 — Pay full positive balance; document confirmation and balance-display gaps
 
-**Covers:** STORY-012, ENTITY-002, ENTITY-005, ENTITY-004, RULE-DECISION-001, RULE-CALC-002, RULE-VAL-026, RULE-VAL-036
+**Covers:** STORY-012, ENTITY-002/004/005, RULE-DECISION-001, RULE-CALC-002, executable account-ID/Y path of RULE-VAL-026, RULE-VAL-036.
 
-**Prerequisites:** Capture baseline for the three payment fixture accounts. `11111111111` has balance `+125.50`; `22222222222` has `0.00`; `33333333333` has `-1.00`.
+**Prerequisites:** Account `1` has seed balance `194.00`. Prepare zero/negative separate-account cases as Common prerequisites step 5, or mark them Blocked. The payment screen does **not** show pre-payment balance; record it from Account lookup before opening payment.
 
-1. Open **Bill payment**. Submit blank ID, malformed ID, and valid ID with blank confirmation. Verify account ID requirement and confirmation prompt/no payment.
-2. For the positive account, verify displayed pre-payment balance is `125.50`. Submit `N`, then separately `X`; verify N clears/cancels with no transaction/balance change and X is rejected.
-3. Submit `Y` for `11111111111`. Re-query account and transaction list.
-4. Verify exactly one new transaction is `BILL PAYMENT - ONLINE`; its amount is `125.50`, it references the assigned card, its ID is unique, and new account balance is `0.00` (`125.50 - 125.50`).
-5. Submit `Y` for zero and negative accounts.
-6. Use Clear/PF4 and Return/PF3-equivalent navigation.
+1. Record account `1` balance in Account lookup. In **Bill payment**, submit blank/malformed ID and blank confirmation.
+2. Submit `N` and `X` in separate attempts; re-query balance/transactions after each.
+3. Submit `Y` for account `1`, then re-query account and transactions.
+4. Verify one new `BILL PAYMENT - ONLINE` transaction references the assigned card; its amount equals the recorded balance, its ID is unique, and account balance is `0.00`.
+5. Submit `Y` for prepared zero/negative accounts when available.
 
-**Expected result:** Payment is available only when balance is greater than zero. A successful payment settles the *entire* current balance, not a partial amount; zero/negative returns `You have nothing to pay...` and creates no transaction. Confirmation accepts Y/y/N/n only.
+**Expected result:** Positive payment settles the recorded full balance. Blank/N/X receive the same modern client-side “Enter Y” error and do not reach the API: legacy tri-state `Y/N/invalid` behavior is a **gap**, not P/N/B confirmation coverage. Pre-payment display is a **gap** because it is verified through Account lookup, not payment UI. Zero/negative outcomes are executable only after documented setup; otherwise Blocked. PF3/PF4 are N/A.
 
-**Cleanup:** Reset all payment fixtures and payment transactions with approved tooling.
+**Cleanup:** Restore payment balances and reset created payment transactions by approved local reset.
 
 ---
 
@@ -288,13 +280,12 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Prerequisites:** Administrator session; more than ten security users.
 
-1. Open **Security users**, search by a starting ID, and verify matching paged results.
-2. Page forward/backward to last/first boundaries.
-3. Select/open Update and Delete actions for a displayed user; verify the chosen ID is carried to the correct form.
-4. Through terminal-compatible list selection/equivalent harness, enter invalid nonblank selection code.
-5. Use PF3/return navigation.
+1. Open **Security users**, search by a starting ID, and verify matching results.
+2. Create at least nine disposable users first if user-pagination is required; otherwise record pagination as Blocked because the seed has only two users.
+3. Use visible Update and Delete links for a displayed user; verify the selected ID is carried to the correct form.
+4. Return using visible navigation.
 
-**Expected result:** `U`/`u` opens update, `D`/`d` opens delete; another nonblank action reports `Invalid selection. Valid values are U and D`. Page boundaries explain top/bottom and retain the list.
+**Expected result:** Visible Update/Delete links are executable. Legacy U/D action-code entry, invalid action validation, and PF3 are **N/A—unimplemented modern-stack controls**. User pagination is executable only after documented disposable-user setup.
 
 **Cleanup:** Return to user list; do not delete baseline users.
 
@@ -302,7 +293,7 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Covers:** STORY-014, ENTITY-010, RULE-VAL-023, RULE-VAL-024
 
-**Prerequisites:** Administrator session; reserve `FTUSR01`.
+**Prerequisites:** Administrator session; choose an unused unique 8-character-or-shorter ID such as `FTUSR01`.
 
 1. Open **Add security user**. For each of User ID, first name, last name, password, user type, leave only that field blank while all others are valid; submit.
 2. Submit valid DATA-USER-VALID values for `FTUSR01`; verify success status, cleared form, and that the user appears in list/search.
@@ -318,14 +309,14 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Covers:** STORY-015, ENTITY-010, RULE-VAL-023
 
-**Prerequisites:** Administrator session; create/reuse `FTUSR02` with known password.
+**Prerequisites:** Administrator session; create `FTUSR02` in FT-FE-014 (or another unique disposable user) with known password.
 
 1. Open **Update security user**; submit blank/unknown User ID and verify retrieval is blocked/error remains recoverable.
 2. Retrieve `FTUSR02`; verify first name, last name, password entry, and type are available.
 3. Attempt save with no editable change.
 4. For every required field (User ID, first name, last name, password, type), blank only that field and save.
-5. Enter a valid changed last name/password/type; save using Save/PF5 equivalent; re-query and verify persistence.
-6. Test Clear/PF4, Return/PF12, and save-then-return/PF3 semantics where the deployed UI provides them.
+5. Enter a valid changed last name/password/type; save using visible Save user action; re-query and verify persistence.
+6. Test PF4/PF12/PF3 semantics as N/A legacy navigation gaps; use visible routes only.
 
 **Expected result:** No-change reports `Please modify to update ...` and does not update. Required fields are identified before save. Valid modifications persist. Navigation follows screen flow.
 
@@ -335,12 +326,12 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 **Covers:** STORY-016, ENTITY-010, RULE-VAL-023
 
-**Prerequisites:** Administrator session; existing `FTDEL01` user reserved solely for deletion.
+**Prerequisites:** Administrator session; create disposable `FTDEL01` in FT-FE-014 before this test. It is not a seed user.
 
 1. Open **Delete security user**; submit blank and unknown IDs.
-2. Retrieve `FTDEL01`; verify first name, last name, and type; verify the instruction `Press PF5 key to delete this user ...` (or equivalent explicit delete action) appears.
+2. Retrieve `FTDEL01`; verify first name, last name, and type; verify the visible **Delete user** action appears; literal PF5 is not implemented.
 3. Navigate/cancel without the explicit delete action; re-query and verify user still exists.
-4. Retrieve it again; execute Delete/PF5. Verify `User [ID] has been deleted ...` outcome and list/search no longer finds it.
+4. Retrieve it again; execute **Delete user**. Verify `User [ID] has been deleted ...` outcome and list/search no longer finds it.
 5. Fault inject delete failure for a newly created disposable user.
 
 **Expected result:** Retrieval alone never deletes. Explicit delete removes only the displayed selected user. Unknown/failure never claims deletion. Clear/return actions follow the documented flow.
@@ -353,37 +344,33 @@ Run every script against a resettable, non-production environment. Execute API/e
 
 ### FT-FE-017 — Request monthly, yearly, and custom reports
 
-**Covers:** STORY-017, ENTITY-005, RULE-DECISION-003, RULE-DECISION-004, RULE-VAL-037, RULE-VAL-038
+**Covers:** STORY-017, ENTITY-005, RULE-DECISION-003/004, observable portions of RULE-VAL-037/038.
 
-**Prerequisites:** Controlled system date; transaction fixture contains current-month, prior-month, current-year, prior-year, and custom-range records. Queue submission observation is available.
+**Prerequisites:** Use the application clock (the UI has no controllable clock) and seeded/created period records. The modern stack persists a report request and returns JSON rows synchronously; it has no TDQ/JOBS queue or batch submission.
 
-1. Select **Monthly**, leave confirmation blank, then enter `N`, `X`, and `Y` in independent attempts. On Y, inspect the queued request/API response and verify range is first day through final day of the controlled current calendar month.
-2. Repeat for **Yearly** and verify `YYYY-01-01` through `YYYY-12-31` using the controlled current year.
-3. For custom, test no report type; each missing start/end component; nonnumeric components; month `13`; day `32`; invalid calendar dates including `2023-02-29`; then valid `2024-02-29` to `2024-02-29`.
-4. Submit custom valid dates with blank/N/X/Y confirmation. Verify blank prompts, N clears/cancels, X rejects, Y queues one job and reports submitted status.
-5. Run Monthly with controlled date in December and verify end date is December 31, exercising the year-transition calculation.
-6. Fault inject queue-write failure after a valid confirmed request.
+1. Select **Monthly**, enter `Y`, submit, and verify returned start/end equal the running calendar month.
+2. Repeat **Yearly** and verify running-year `YYYY-01-01` through `YYYY-12-31`.
+3. For Custom, test missing date(s) and browser-selectable valid leap date `2024-02-29`. Native date inputs prevent malformed values such as `2023-02-29`, month `13`, day `32`, and nonnumeric parts; log those as **API-level/UI-unreachable**.
+4. Submit valid Custom with `Y`; verify `SUBMITTED` and returned JSON rows. Record the UI’s extra chronological-order check as a deviation beyond RULE-VAL-037.
+5. Submit blank, `N`, and `X` confirmations separately and capture the modern client error/no request.
 
-**Expected result:** Monthly/yearly derive, rather than require entry of, their specified calendar periods. Custom validates complete numeric dates, stated upper bounds, and calendar validity. Only `Y` submits; queue failure says `Unable to Write TDQ (JOBS)...` rather than success. Do not assert a chronological-order rejection for custom dates because RULE-VAL-037 does not define one.
+**Expected result:** Month/year derivation and `Y` REST submission are executable. Blank/N/X all produce the same client error, therefore legacy tri-state confirmation is a **gap**, not P/N/B coverage. TDQ/JOBS write/failure, queue cancellation, and controlled December clock are **N/A—absent modern-stack features**.
 
-**Cleanup:** Cancel/remove queued test jobs and clear faults.
+**Cleanup:** Reset data created solely for report period setup; no queue job exists.
 
-### FT-FE-018 — Produce and inspect formatted transaction report
+### FT-FE-018 — Legacy formatted transaction report gap assessment (not executable in modern stack)
 
-**Covers:** STORY-018, ENTITY-005, ENTITY-003, ENTITY-004, ENTITY-006, ENTITY-007, RULE-DECISION-003, RULE-DECISION-004
+**Covers:** STORY-018, ENTITY-003–007, RULE-DECISION-003/004 — **N/A gap, not P/N/B coverage.**
 
-**Prerequisites:** A successfully queued custom report for `2024-02-01` through `2024-02-29`; test transactions whose processing dates are immediately before, at start, mid-range, at end, and immediately after range; at least two card numbers out of order; operations access to output dataset/job log.
+**Status:** React/API returns JSON rows for persisted report requests. It does not submit a batch job, create a backup generation, produce `TRANREPT`, expose output datasets, or generate fixed 133-byte records.
 
-1. Run the submitted report job via approved operations procedure.
-2. Verify a dated backup generation of processed transaction data is created before report generation.
-3. Inspect `TRANREPT`. Verify every selected record has processing date inclusively within range; prior/after transactions are absent; selected entries are sorted ascending by card number.
-4. Verify the reporting process received transaction, card cross-reference, type/category, and requested-date inputs.
-5. Verify output records are fixed 133-byte formatted records.
-6. Request/run an empty date range and verify no transaction-detail records appear.
+1. Execute FT-FE-017 with `Y` and retain its returned JSON response as evidence.
+2. Verify no UI control/documented endpoint produces batch output, backup generation, `TRANREPT`, or fixed-width data.
+3. Record `FT-FE-018-S03` as **N/A** with the UI route/API response and this gap statement; do not fabricate operational procedures, harnesses, or TDQ checks.
 
-**Expected result:** The report includes only inclusive date-range data, sorts selected data by card, and produces the required formatted output; an empty range has no selected transaction detail records.
+**Expected result:** The unimplemented legacy report requirement is auditable. Inclusive JSON row filtering remains observable only in FT-FE-017; batch formatting/sorting/backup requirements are not implemented.
 
-**Cleanup:** Retain or purge generated non-production report output according to environment policy.
+**Cleanup:** None beyond FT-FE-017 cleanup.
 
 ---
 

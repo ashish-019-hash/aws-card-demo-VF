@@ -2,20 +2,18 @@
 
 Use this pack with [FUNCTIONAL_TEST_SCRIPTS.md](FUNCTIONAL_TEST_SCRIPTS.md). Values are deliberately fictional. Reset the environment before execution and replace identifiers only where the environment's seeded data differs.
 
-## Baseline records
+## Baseline records and setup limits
 
-| Key | Value / required state | Used by |
+| Key | Actual default seed / practical setup | Used by |
 |---|---|---|
-| Standard user | `STDUSER` / `PASS1234`, type `USER` | FT-FE-001–012, 017 |
-| Admin user | `ADMIN01` / `ADMIN123`, type `ADMINISTRATOR` | FT-FE-001, 003, 013–016 |
-| Positive payment account | `11111111111`, current balance `+125.50`, linked card `4111111111111111` | Account/card/transaction/payment tests |
-| Zero payment account | `22222222222`, current balance `0.00`, linked card `4222222222222222` | FT-FE-012 |
-| Negative payment account | `33333333333`, current balance `-1.00`, linked card `4333333333333333` | FT-FE-012 |
-| Known transaction | `9000000000000001` | FT-FE-010 |
-| Disposable create/update user | `FTUSR01`, `FTUSR02` | FT-FE-014–015 |
-| Disposable delete user | `FTDEL01` | FT-FE-016 |
+| Standard user | `USER0001` / `USER123`, role `U` | FT-FE-001–012, 017 |
+| Administrator | `ADMIN001` / `ADMIN123`, role `A` | FT-FE-001, 003, 013–016 |
+| Linked positive account/card | Account `1`, card `0500024453765740`, current balance `194.00` | Account/card/transaction/payment tests |
+| Known transaction | `0000000000000000` | FT-FE-010 |
+| Disposable users | Create unique `FT...` IDs (≤8 chars) in FT-FE-014; use them for FT-FE-015/016, then delete/reset | User CRUD/pagination |
+| Zero / negative payment case | **Not seeded.** Set a separate linked account to `0.00` then `-1.00` via Account maintenance, test, restore; otherwise Blocked. | FT-FE-012 |
 
-Provide more than ten cards, transactions, and users to exercise page boundaries. Provide report transactions with processing dates before, on, within, and after `2024-02-01`–`2024-02-29`, on multiple unsorted card numbers.
+The default seed supplies 50 accounts/cards and 300 transactions, enough for card/transaction pagination. It supplies only two users; user pagination requires disposable users. To reset all modifications, restart with `--carddemo.database.reset=true` or use approved local reset tooling.
 
 ## Valid reusable input
 
@@ -39,7 +37,7 @@ Provide more than ten cards, transactions, and users to exercise page boundaries
 
 | Field | Value |
 |---|---|
-| Account ID | `11111111111` (or use Card number only: `4111111111111111`) |
+| Account ID | `1` (or use card number only: `0500024453765740`) |
 | Type code | `01` |
 | Category code | `0001` |
 | Source | `ONLINE` |
@@ -70,7 +68,7 @@ Each negative vector is applied after making a separate otherwise-valid change, 
 |---|---|---|---|---|
 | RULE-VAL-003 | Active status | blank, `X` | `Y`, `N` | Required; only Y/N accepted. |
 | RULE-VAL-004 | Each signed money field | blank, `ABC`, `+1.234` | `+0.00`, `-9999999999.99`, `+9999999999.99` when field capacity permits | Signed decimal, max two fractional positions. |
-| RULE-VAL-005 / 039 | Open/expiry/reissue/DOB | blank date, `2023-02-29`, `2024-04-31`, `2024-13-01`, DOB today, DOB future | `1900-01-01`, `2024-02-29`; DOB `1990-02-28` | Valid CCYYMMDD/calendar semantics; DOB strictly earlier than today. |
+| RULE-VAL-005 / 039 | Open/expiry/reissue/DOB | blank date and DOB today/future in UI; `2023-02-29`, `2024-04-31`, `2024-13-01` are API-level/UI-unreachable in native date input | `1900-01-01`, `2024-02-29`; DOB `1990-02-28` | Valid CCYYMMDD/calendar semantics; DOB strictly earlier than today. |
 | RULE-VAL-006 | FICO | blank, `0`, `299`, `851`, `ABC` | `300`, `850` | Numeric inclusive range. |
 | RULE-VAL-007 | First/middle/last name | first/last blank; `AL1CE`; middle `B3TH` | first/last letters/spaces; middle blank or letters/spaces | First/last required alpha; middle optional alpha. |
 | RULE-VAL-008 | Address/city/state/country/ZIP/EFT | blank line 1; blank/`A1` city/state/country; ZIP first 5 blank/non-numeric/`00000`; EFT blank/non-numeric/zero | line 2 blank; `AUSTIN`, `TX`, `USA`, `78701`, `1234567890` | Required domains; line 2 optional. |
@@ -86,7 +84,7 @@ Each negative vector is applied after making a separate otherwise-valid change, 
 |---|---|---|---|
 | RULE-VAL-014 | Supplied account ID | `ABC`; account-view `0`; card-update blank | Card-list/search blank or zero as omitted filter; numeric non-zero valid account. |
 | RULE-VAL-015 | Card number | `ABC`, 15 digits; card-update blank/zero | Card-list/search blank/zero as omitted filter; 16 numeric digits. |
-| RULE-VAL-016 | Card-list row actions | two `S`/`U` actions; `X` action | one blank or one `S`/`U` action. |
+| RULE-VAL-016 | Card-list row actions | **N/A—React UI has links, not S/U row actions.** | No manual modern-UI vector exists. |
 | RULE-VAL-017 | Embossed name | blank, `JANE2`, `JANE-DOE` | `JANE DOE` |
 | RULE-VAL-018 | Card status | blank, `X` | `Y`, `N` |
 | RULE-VAL-019 | Expiry month | blank, `00`, `13` | `01`, `12` |
@@ -96,14 +94,14 @@ Each negative vector is applied after making a separate otherwise-valid change, 
 
 | Rule | Field(s) | Reject | Accept |
 |---|---|---|---|
-| RULE-VAL-027 | List filter/selection | `ID-A`; action `X` with selected row | blank filter; numeric filter; `S`/`s` selected row |
-| RULE-VAL-028 | Detail transaction ID | blank | Known ID `9000000000000001` |
+| RULE-VAL-027 | List filter / legacy selection | `ID-A` filter; legacy action-code vectors are N/A | blank/numeric filter; visible transaction-ID link | Selection-code half is N/A—no S/s control. |
+| RULE-VAL-028 | Detail transaction ID | blank | Known ID `0000000000000000` |
 | RULE-VAL-029 | Add confirmation | blank, `N`, `X` | `Y`, `y` (only these add) |
 | RULE-VAL-030 | Account/card ID | both blank; `ABC` account; `CARD` card | numeric account only or numeric 16-digit card only |
 | RULE-VAL-031 | Required add fields | blank each of type, category, source, desc, amount, origin/process date, merchant ID/name/city/ZIP | DATA-TRAN-VALID values |
 | RULE-VAL-032 | Type/category | `A1`, `12A` | `01`, `0001` |
 | RULE-VAL-033 | Amount | `125.50`, `+123456789.00`, `+12.5`, `+12.500`, `+12345678X.00` | `+00000000.00`, `-99999999.99`, `+00000125.50` |
-| RULE-VAL-034 | Origin/process date | `2024/02/29`, `2024-02-30`, `2023-02-29`, `2024-13-01` | `2024-02-29` |
+| RULE-VAL-034 | Origin/process date | blank date in UI; malformed/cross-calendar textual values are API-level/UI-unreachable in native date inputs | `2024-02-29` |
 | RULE-VAL-035 | Merchant ID | `MID1` | `123456789` |
 | RULE-VAL-036 | New transaction ID | fault-injected duplicate-key response | next unique ID after highest existing; verify non-duplicate persisted key |
 
@@ -111,10 +109,10 @@ Each negative vector is applied after making a separate otherwise-valid change, 
 
 | Rule | Input | Reject | Accept / expected |
 |---|---|---|---|
-| RULE-DECISION-003 | Monthly | N/A | controlled current month start `YYYY-MM-01` and actual last day, including December `YYYY-12-31` |
-| RULE-DECISION-004 | Yearly | N/A | controlled current year `YYYY-01-01` through `YYYY-12-31` |
-| RULE-VAL-037 | Custom start/end | any missing component; alpha component; month `13`; day `32`; `2023-02-29` (screen-flow calendar check) | numeric month/day/year ≤ 12/31 and valid date; do not require chronological order because catalog does not define it |
-| RULE-VAL-038 | Report confirmation | blank, `N`, `X` | `Y`/`y` queues/submits exactly one request |
+| RULE-DECISION-003 | Monthly | N/A | running-clock current month start `YYYY-MM-01` and actual last day; controlled December is N/A in UI |
+| RULE-DECISION-004 | Yearly | N/A | running-clock current year `YYYY-01-01` through `YYYY-12-31` |
+| RULE-VAL-037 | Custom start/end | missing date in UI; alpha/month `13`/day `32`/`2023-02-29` are API-level/UI-unreachable in native date inputs | browser-selectable `2024-02-29`; record UI chronological-order check as a deviation |
+| RULE-VAL-038 | Report confirmation | blank, `N`, `X` all show modern client error/no request | `Y` submits one REST request | Legacy Y/N/invalid tri-state is a gap; no queue exists. |
 
 ## Fault-injection matrix
 
@@ -126,4 +124,4 @@ Each negative vector is applied after making a separate otherwise-valid change, 
 | FT-FE-011 / 012 | Duplicate transaction write | Duplicate rejected; no duplicate transaction. |
 | FT-FE-014 | User create failure | Error/no success; input correctable. |
 | FT-FE-016 | User delete failure | Error/no deletion success claim. |
-| FT-FE-017 | JOBS queue write failure | `Unable to Write TDQ (JOBS)...`; no submission success. |
+| FT-FE-017 | Legacy TDQ/JOBS queue failure | N/A—modern REST persistence has no TDQ/JOBS queue. |

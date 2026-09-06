@@ -2,10 +2,15 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { http, HttpResponse } from 'msw'
-import { AccountLookupPage } from '../pages/AccountPages'
+import { AccountLookupPage, AccountUpdatePage } from '../pages/AccountPages'
 import { CardDetailPage, CardListPage, CardLookupPage, CardUpdatePage } from '../pages/CardPages'
 import { PaymentPage, ReportPage } from '../pages/PaymentReportPages'
-import { TransactionDetailPage, TransactionListPage, TransactionLookupPage } from '../pages/TransactionPages'
+import {
+  TransactionAddPage,
+  TransactionDetailPage,
+  TransactionListPage,
+  TransactionLookupPage,
+} from '../pages/TransactionPages'
 import { UserFormPage, UserListPage } from '../pages/UserPages'
 import { DashboardPage } from '../pages/DashboardPage'
 import { Layout } from '../components/Layout'
@@ -137,6 +142,40 @@ describe('account and card screens', () => {
     expect(screen.queryByText('Ada Lovelace')).not.toBeInTheDocument()
   })
 
+  it('validates account-maintenance fields before save and blocks invalid input at the API boundary', async () => {
+    const saved = vi.fn()
+    server.use(
+      http.get('/api/accounts/:id', () => HttpResponse.json(account)),
+      http.put('/api/accounts/:id', () => {
+        saved()
+        return HttpResponse.json({ changed: true })
+      }),
+    )
+    render(
+      <MemoryRouter initialEntries={['/accounts/update?id=1']}>
+        <AccountUpdatePage />
+      </MemoryRouter>,
+    )
+    await screen.findByDisplayValue('Ada')
+
+    fireEvent.change(screen.getByLabelText('Fico Credit Score'), { target: { value: '299' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('FICO score must be from 300 to 850.')
+    expect(saved).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('Fico Credit Score'), { target: { value: '750' } })
+    fireEvent.change(screen.getByLabelText('Current Balance'), { target: { value: '100.999' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Monetary fields must be signed numbers')
+    expect(saved).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('Current Balance'), { target: { value: '100.00' } })
+    fireEvent.change(screen.getByLabelText('Date Of Birth'), { target: { value: '2099-01-01' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('date of birth must be in the past')
+    expect(saved).not.toHaveBeenCalled()
+  })
+
   it('filters cards, renders empty results, and keeps invalid filters client-side', async () => {
     const requested = vi.fn()
     server.use(
@@ -215,7 +254,7 @@ describe('account and card screens', () => {
 
     fireEvent.change(screen.getByLabelText('Active status (Y/N)'), { target: { value: 'Y' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('WRITE_FAILED: Card save failed.')
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('WRITE_FAILED: Card save failed.'))
     expect(updated).toHaveBeenCalledOnce()
   })
 })
@@ -272,6 +311,59 @@ describe('transaction screens', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('NOT_FOUND: Transaction not found.')
   })
 
+  it('validates transaction-add amount and confirmation, blocks invalid requests, and surfaces an API error', async () => {
+    const added = vi.fn()
+    const validFields: Record<string, string> = {
+      'Account ID': '1',
+      'Type code': '1',
+      'Category code': '1',
+      Source: 'WEB',
+      Description: 'Coffee',
+      Amount: '+12.50',
+      'Origin date': '2024-01-01',
+      'Processing date': '2024-01-02',
+      'Merchant ID': '1',
+      'Merchant name': 'Cafe',
+      'Merchant city': 'Boston',
+      'Merchant ZIP': '02108',
+      'Confirm (Y)': 'Y',
+    }
+    server.use(
+      http.post('/api/transactions', () => {
+        added()
+        return HttpResponse.json(
+          { code: 'DUPLICATE_TRANSACTION', message: 'Transaction already exists.' },
+          { status: 409 },
+        )
+      }),
+    )
+    render(
+      <MemoryRouter>
+        <TransactionAddPage />
+      </MemoryRouter>,
+    )
+
+    for (const [label, value] of Object.entries({ ...validFields, Amount: '12.50' })) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value } })
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Add confirmed transaction' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('amount must use a sign')
+    expect(added).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '+12.50' } })
+    fireEvent.change(screen.getByLabelText('Confirm (Y)'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add confirmed transaction' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter Y to confirm the transaction.')
+    expect(added).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('Confirm (Y)'), { target: { value: 'Y' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add confirmed transaction' }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('DUPLICATE_TRANSACTION: Transaction already exists.'),
+    )
+    expect(added).toHaveBeenCalledOnce()
+  })
+
   it('blocks a blank direct lookup and routes a supplied transaction identifier', () => {
     render(
       <MemoryRouter initialEntries={['/transactions/detail']}>
@@ -290,7 +382,7 @@ describe('transaction screens', () => {
 })
 
 describe('payment, reporting, and security-user screens', () => {
-  it('normalizes lowercase payment confirmation, shows its result, and surfaces failed payments', async () => {
+  it('normalizes lowercase payment confirmation and renders a successful payment result', async () => {
     const received = vi.fn()
     server.use(
       http.post('/api/accounts/:id/payments', async ({ request }) => {
@@ -310,14 +402,14 @@ describe('payment, reporting, and security-user screens', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('PAID: $194.50 paid. New balance: $0.00.')
   })
 
-  it('validates custom report calendar dates and renders an empty requested report', async () => {
+  it('validates custom report calendar dates and renders an empty submitted report', async () => {
     const requested = vi.fn()
     server.use(
       http.post('/api/reports/requests', async ({ request }) => {
         requested(await request.json())
         return HttpResponse.json({
           requestId: 5,
-          status: 'REQUESTED',
+          status: 'SUBMITTED',
           type: 'CUSTOM',
           startDate: '2024-01-01',
           endDate: '2024-01-31',
@@ -390,7 +482,7 @@ describe('payment, reporting, and security-user screens', () => {
       fireEvent.change(screen.getByLabelText(label), { target: { value } })
     }
     fireEvent.click(screen.getByRole('button', { name: 'Create user' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('DUPLICATE: User already exists.')
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('DUPLICATE: User already exists.'))
 
     server.use(http.post('/api/users', () => HttpResponse.json({ userId: 'NEW0001' }, { status: 201 })))
     fireEvent.click(screen.getByRole('button', { name: 'Create user' }))
@@ -400,13 +492,13 @@ describe('payment, reporting, and security-user screens', () => {
 })
 
 describe('shared UI, layout, and role-focused navigation', () => {
-  it('provides keyboard-operable pagination boundaries and accessible pagination naming', () => {
+  it('renders accessible pagination controls and disables the first-page Previous action', () => {
     const change = vi.fn()
     render(<Pagination page={{ number: 0, totalPages: 2, first: true, last: false }} onChange={change} />)
     expect(screen.getByRole('navigation', { name: 'Pagination' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Next' }), { key: 'Enter' })
     fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(change).toHaveBeenCalledOnce()
     expect(change).toHaveBeenCalledWith(1)
   })
 
