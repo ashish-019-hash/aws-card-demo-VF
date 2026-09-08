@@ -9,7 +9,7 @@ test.describe('sign-on and navigation', () => {
     await page.getByLabel('User ID').fill('USER0001')
     await page.getByLabel('Password').fill('WRONG123')
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByText(/password|credential|invalid/i)).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveText('WRONG_PASSWORD: Wrong Password. Try again ...')
     await expect(page).toHaveURL(/sign-in/)
   })
 

@@ -9,7 +9,8 @@ test.describe('account and card servicing', () => {
     await page.getByRole('button', { name: 'Find account' }).click()
 
     await expect(page.getByRole('heading', { name: `Account ${seeded.account.id}` })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Customer' })).toBeVisible()
+    await expect(page.getByText('Immanuel Madeline Kessler')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Linked cards' })).toBeVisible()
     await expect(page.getByRole('link', { name: seeded.account.cardNumber })).toBeVisible()
   })
 
@@ -33,6 +34,16 @@ test.describe('account and card servicing', () => {
     await signInAsStandardUser()
     await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Cards' }).click()
     await expect(page.getByRole('heading', { name: 'Credit cards' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Pagination' })).toContainText('Page 1 of 5')
+    await page.getByRole('navigation', { name: 'Pagination' }).getByRole('button', { name: 'Next' }).click()
+    await expect(page.getByRole('navigation', { name: 'Pagination' })).toContainText('Page 2 of 5')
+
+    await page.getByLabel('Card number').fill('not-a-card')
+    await page.getByRole('button', { name: 'Search' }).click()
+    await expect(page.getByRole('alert')).toHaveText(
+      'Account IDs must be numeric and card numbers must contain 16 digits.',
+    )
+
     await page.getByLabel('Card number').fill(seeded.card.number)
     await page.getByRole('button', { name: 'Search' }).click()
     await expect(page.getByRole('link', { name: seeded.card.number })).toBeVisible()

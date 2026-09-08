@@ -26,10 +26,16 @@ test.describe('administrator user maintenance', () => {
     await expect(page.getByText(`User ${userId} was updated.`)).toBeVisible()
 
     await page.goto(`/users/delete?id=${userId}`)
-    await expect(page.getByText('Press', { exact: false })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Delete security user' })).toBeVisible()
     await expect(page.getByLabel('First name')).toHaveValue('Browser')
+    await expect(page.getByLabel('Last name')).toHaveValue('Tester')
     await page.getByRole('button', { name: 'Delete user' }).click()
-    await expect(page.getByText(`User ${userId} has been deleted.`)).toBeVisible()
+    await expect(page.getByRole('status')).toHaveText(`User ${userId} has been deleted.`)
+
+    await page.goto('/users')
+    await page.getByLabel('User ID starts with').fill(userId)
+    await page.getByRole('button', { name: 'Search' }).click()
+    await expect(page.getByText('No users match the supplied filter.')).toBeVisible()
   })
 
   test('does not create a duplicate security user', async ({ page, signInAsAdministrator }) => {

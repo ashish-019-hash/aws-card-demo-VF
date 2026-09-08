@@ -1,7 +1,8 @@
+import type { Page } from '@playwright/test'
 import { test, expect } from '../support/fixtures'
 import { transactionInput } from '../support/test-data'
 
-async function fillTransaction(page: import('@playwright/test').Page, values: Record<string, string>) {
+async function fillTransaction(page: Page, values: Record<string, string>) {
   for (const [label, value] of Object.entries({
     'Account ID': values.accountId,
     'Card number': values.cardNumber,
@@ -65,8 +66,21 @@ test.describe('transaction inquiry and capture', () => {
     await expect(page.getByText(/amount must use a sign/i)).toBeVisible()
 
     await page.getByLabel('Amount').fill('+12.50')
+    await page.getByRole('button', { name: 'Add confirmed transaction' }).click()
+    await expect(page.getByRole('alert')).toHaveText('Enter Y to confirm the transaction.')
+
     await page.getByLabel('Confirm (Y)').fill('Y')
     await page.getByRole('button', { name: 'Add confirmed transaction' }).click()
-    await expect(page.getByRole('status')).toHaveText(/ADDED: transaction \d+ was created/i)
+    const success = page.getByRole('status')
+    await expect(success).toHaveText(/^ADDED: transaction \d+ was created\.$/)
+    const transactionId = (await success.textContent())?.match(/transaction (\d+) was created/)?.[1]
+    expect(transactionId).toBeDefined()
+
+    await page.goto(`/transactions/${transactionId}`)
+    await expect(page.getByRole('heading', { name: 'Transaction details' })).toBeVisible()
+    await expect(page.getByText(transactionId!, { exact: true })).toBeVisible()
+    await expect(page.getByText('Browser test transaction', { exact: true })).toBeVisible()
+    await expect(page.getByText('E2E Merchant', { exact: true })).toBeVisible()
+    await expect(page.getByText('$12.50', { exact: true })).toBeVisible()
   })
 })

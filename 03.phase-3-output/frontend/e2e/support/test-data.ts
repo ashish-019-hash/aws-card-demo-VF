@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 export const seeded = {
   administrator: { userId: 'ADMIN001', password: 'ADMIN123' },
   standardUser: { userId: 'USER0001', password: 'USER123' },
@@ -8,8 +10,13 @@ export const seeded = {
 export const today = new Date().toISOString().slice(0, 10)
 export const currentYear = new Date().getUTCFullYear()
 
+const runToken = `${Date.now().toString(36).slice(-4)}${randomBytes(1).toString('hex')}`.toUpperCase()
+let userSequence = 0
+
+/** Eight characters at most: a process-unique token plus a per-run sequence. */
 export function uniqueUserId() {
-  return `E2E${Date.now().toString().slice(-5)}`
+  userSequence += 1
+  return `E${runToken}${userSequence.toString(36)}`.slice(0, 8)
 }
 
 export function transactionInput(overrides: Record<string, string> = {}) {

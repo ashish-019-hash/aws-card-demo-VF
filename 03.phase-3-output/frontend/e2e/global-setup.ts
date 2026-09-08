@@ -1,14 +1,14 @@
 import { request } from '@playwright/test'
-import { adminSession, resetTestDatabase } from './support/api'
+import { assertDestructiveRunIsAllowed, assertSeededBackendReady } from './support/backend-readiness'
 
 export default async function globalSetup() {
+  assertDestructiveRunIsAllowed()
   const api = await request.newContext({
     baseURL: process.env.E2E_API_BASE_URL ?? 'http://127.0.0.1:8080',
   })
 
   try {
-    await resetTestDatabase(api)
-    await adminSession(api)
+    await assertSeededBackendReady(api)
   } finally {
     await api.dispose()
   }

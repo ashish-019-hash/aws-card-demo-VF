@@ -4,8 +4,8 @@ This suite drives the React application in Chromium and uses the real Spring Boo
 
 ## Prerequisites
 
-- Docker (the backend requires Java 21 through `maven:3.9.9-eclipse-temurin-21`)
-- Node 20+ and installed frontend dependencies
+- Docker, installed and running (the backend uses Java 21 through `maven:3.9.9-eclipse-temurin-21`)
+- Node 20+ with frontend dependencies installed
 - Chromium installed once with `npm run e2e:install`
 
 ## Deterministic local run
@@ -18,35 +18,50 @@ npm run e2e:install
 npm run e2e:local
 ```
 
-`run-local.sh` refuses to reuse port 8080. It starts the backend with `--carddemo.database.reset=true`, waits for `/v3/api-docs`, runs Chromium tests, then removes the container. The reset clears modern H2 tables in dependency order and reloads immutable bundled extracts, making each command invocation a clean baseline.
+`e2e:local` requires an unused backend port (default `8080`), starts a Docker-owned Spring Boot process with `--carddemo.database.reset=true`, waits for the API, runs Chromium tests in UTC, and removes the container on every exit path. It mounts `~/.m2` (or `MAVEN_CACHE_DIR`) to speed up Maven dependency resolution. The reset clears modern H2 tables in dependency order and reloads immutable bundled extracts, making each command invocation a clean baseline.
 
-For an already running backend at the default address, use:
-
-```bash
-npm run e2e
-```
-
-The backend must have been started with a clean seed if the suite is to be reproducible:
+Optional runner controls:
 
 ```bash
-cd ../../02.phase-2-output/backend
-docker run --rm -p 8080:8080 -v "$PWD":/workspace -w /workspace \
-  maven:3.9.9-eclipse-temurin-21 mvn spring-boot:run \
-  -Dspring-boot.run.arguments="--carddemo.database.reset=true"
+E2E_BACKEND_PORT=18080 E2E_STARTUP_TIMEOUT_SECONDS=180 npm run e2e:local
+MAVEN_CACHE_DIR=/path/to/m2 npm run e2e:local
 ```
 
-Set `E2E_API_BASE_URL` or `E2E_BASE_URL` only when deliberately using a different local backend or frontend URL. The default Vite process is automatically started on port 5173 and proxies `/api` to port 8080.
+The runner passes the selected API address to the Vite proxy. Its readiness check signs in with the seeded standard user and verifies account `1` and linked card `9680294154603697`; a listening but incorrectly seeded backend cannot pass.
+
+## Destructive-run boundary
+
+The suite creates a transaction, a report request, and a unique temporary security user (then verifies its browser-driven deletion). There is no public transaction-delete/reset endpoint. Accordingly:
+
+- `npm run e2e:local` is the supported command and provides the mandatory clean reset boundary.
+- `npm run e2e` refuses to run unless `E2E_RESET_BOUNDARY=fresh-container` or `E2E_ALLOW_EXISTING_BACKEND=true` is set.
+- Non-loopback API targets additionally require `E2E_ALLOW_REMOTE_DESTRUCTIVE_RUN=true`. Set both overrides only for an approved, disposable environment that has been reset separately.
+- Playwright retries are intentionally disabled: replaying a failed test would create more persistent data and hide lifecycle defects.
+
+For an approved already-running **disposable and manually reset** backend only:
+
+```bash
+E2E_ALLOW_EXISTING_BACKEND=true npm run e2e
+```
+
+## Quality checks
+
+```bash
+npm run e2e:check  # strict TypeScript check plus Prettier over E2E files
+npm run e2e        # quality checks and Playwright
+npm run e2e:report
+```
 
 ## Test architecture
 
-- `global-setup.ts` probes the live backend before browser execution.
-- `support/fixtures.ts` supplies clean browser-session sign-in helpers.
-- `support/test-data.ts` holds documented seed credentials and generated test identifiers.
-- Specs create only uniquely named security users and one new transaction. Their effects disappear at the next backend reset.
-- `playwright.config.ts` serializes test execution because all browser contexts share the real seeded database, preserves traces/screenshots/video for failures, and emits an HTML report.
+- `global-setup.ts` first enforces destructive-run policy, then verifies the live seeded backend data dependencies.
+- `support/fixtures.ts` supplies fresh browser-session sign-in helpers.
+- `support/test-data.ts` holds seed credentials and creates eight-character, process-unique user IDs.
+- Specs retain durable effects only inside the runner-owned database boundary; they verify user deletion after the browser workflow.
+- `playwright.config.ts` serializes execution because browser contexts share the real database, disables retries, preserves failure artifacts, and emits an HTML report.
 
 ## Scope and intentional gaps
 
-The web UI implements the modern supported workflows. The matrix records terminal-only behavior and legacy batch artifacts as **not automatable through this frontend** rather than fabricating tests. In particular, PF-key behavior, row-action codes, terminal field focus, the unavailable `COCRDSEC` search source, `JOBS` TDQ submission, backup generation, and fixed 133-byte `TRANREPT` data-set output have no browser-accessible implementation. STORY-018's modern replacement is the persisted report request and its returned, date-filtered/card-sorted transactions; it is tested as report submission/output, not claimed as the legacy batch dataset.
+The web UI implements the modern supported workflows. The matrix records terminal-only behavior and legacy batch artifacts as **not automatable through this frontend** rather than fabricating tests. In particular, PF-key behavior, row-action codes, terminal field focus, the unavailable `COCRDSEC` search source, `JOBS` TDQ submission, backup generation, and fixed 133-byte `TRANREPT` data-set output have no browser-accessible implementation. STORY-018's modern replacement is a persisted report request and its returned rows; it is tested as submission/output only and never represented as a legacy formatted batch report.
 
 See [TRACEABILITY.md](TRACEABILITY.md) for requirement-level coverage and gaps.
