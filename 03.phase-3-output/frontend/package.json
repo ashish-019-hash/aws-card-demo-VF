@@ -9,7 +9,15 @@
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest",
     "preview": "vite preview --host 0.0.0.0",
-    "format:check": "prettier --check src"
+    "format:check": "prettier --check src",
+    "format:e2e:check": "prettier --check playwright.config.ts tsconfig.e2e.json e2e",
+    "typecheck:e2e": "tsc --project tsconfig.e2e.json",
+    "e2e:check": "npm run typecheck:e2e && npm run format:e2e:check",
+    "e2e": "npm run e2e:check && playwright test",
+    "e2e:local": "bash ./e2e/run-local.sh",
+    "e2e:headed": "playwright test --headed",
+    "e2e:report": "playwright show-report",
+    "e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -20,6 +28,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^22.10.1",
