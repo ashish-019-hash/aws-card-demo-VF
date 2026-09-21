@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Prove bill-payment card selection is deterministic when an account has multiple cards. This fixture is synthetic and must not be imported as a canonical legacy dataset.",
+  "account": {
+    "id": "90000000001",
+    "currentBalance": "123456789.01",
+    "expectedVersion": 7
+  },
+  "cardXrefs": [
+    {
+      "cardNumber": "9000000000000002",
+      "customerId": "900000001",
+      "accountId": "90000000001"
+    },
+    {
+      "cardNumber": "1000000000000001",
+      "customerId": "900000001",
+      "accountId": "90000000001"
+    }
+  ],
+  "expectedPayment": {
+    "selectedCardNumber": "1000000000000001",
+    "selectionRule": "ascending lexical order by 16-byte card number",
+    "amount": "123456789.01",
+    "resultingAccountBalance": "0.00",
+    "resultingAccountVersion": 8
+  }
+}
