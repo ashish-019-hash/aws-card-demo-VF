@@ -85,8 +85,11 @@ public class AccountService {
 
         applyFields(account, customer, request.updated());
         try {
-            accountRepository.save(account);
-            customerRepository.save(customer);
+            // saveAndFlush (not save): a plain save() only queues the SQL for the
+            // transaction's eventual commit-time flush, so a DB-level failure would
+            // surface after this try/catch has already exited and never be caught here.
+            accountRepository.saveAndFlush(account);
+            customerRepository.saveAndFlush(customer);
         } catch (RuntimeException e) {
             throw new ConflictException("UPDATE_FAILED: The update could not be saved. Please try again.");
         }

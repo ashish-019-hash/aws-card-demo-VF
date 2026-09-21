@@ -61,7 +61,7 @@ class CardServiceTest {
         CardUpdateResponse resp = service.updateCard(CARD_NUM, new CardUpdateRequest(same, same));
 
         assertThat(resp.changed()).isFalse();
-        verify(cardRepository, never()).save(any());
+        verify(cardRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -73,7 +73,7 @@ class CardServiceTest {
         assertThatThrownBy(() -> service.updateCard(CARD_NUM, new CardUpdateRequest(staleExpected, updated)))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("DATA_CHANGED");
-        verify(cardRepository, never()).save(any());
+        verify(cardRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -87,7 +87,7 @@ class CardServiceTest {
 
         assertThat(resp.changed()).isTrue();
         assertThat(card.getEmbossedName()).isEqualTo("JANE DOE");
-        verify(cardRepository).save(card);
+        verify(cardRepository).saveAndFlush(card);
     }
 
     @Test
@@ -96,7 +96,7 @@ class CardServiceTest {
         CardFields updated = fields("JANE DOE");
         Card card = cardEntity();
         when(cardRepository.findByIdForUpdate(CARD_NUM)).thenReturn(Optional.of(card));
-        when(cardRepository.save(card)).thenThrow(new RuntimeException("db error"));
+        when(cardRepository.saveAndFlush(card)).thenThrow(new RuntimeException("db error"));
 
         assertThatThrownBy(() -> service.updateCard(CARD_NUM, new CardUpdateRequest(expected, updated)))
                 .isInstanceOf(ConflictException.class)

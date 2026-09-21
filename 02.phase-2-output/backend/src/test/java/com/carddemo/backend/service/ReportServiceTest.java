@@ -68,8 +68,9 @@ class ReportServiceTest {
 
     @Test
     void invalidConfirmValueIsRejected() {
-        ReportResponse r = service.submit(new ReportRequest("Monthly", null, null, "X"));
-        assertThat(r.submitted()).isFalse();
-        assertThat(r.message()).contains("not a valid value");
+        assertThatThrownBy(() -> service.submit(new ReportRequest("Monthly", null, null, "X")))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anyMatch(fe -> fe.message().contains("not a valid value")));
     }
 }

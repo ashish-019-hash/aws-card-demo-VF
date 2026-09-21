@@ -49,7 +49,7 @@ All error responses share this shape:
 | `code` | HTTP status | Thrown by |
 |---|---|---|
 | `VALIDATION_FAILED` | 400 | `ValidationFailedException` (validators in `com.carddemo.backend.validation`) |
-| `UNAUTHORIZED` | 401 | `BadCredentialsException` (bad sign-on) |
+| `UNAUTHORIZED` | 401 | `BadCredentialsException` (bad sign-on), or `RevalidationFilter` rejecting an established session whose user no longer exists/is otherwise invalid on a later request |
 | `FORBIDDEN` | 403 | `AccessDeniedException` (non-admin hitting `/api/users/**`) |
 | `NOT_FOUND` | 404 | `NotFoundException` (unknown account/card/transaction/user id) |
 | `CONFLICT` | 409 | `ConflictException` — message is prefixed `DATA_CHANGED:` (stale optimistic-lock snapshot) or `UPDATE_FAILED:` (downstream write failure), or is a plain message for user-id-already-exists / bill-payment allocator issues |
@@ -71,6 +71,16 @@ All error responses share this shape:
 `confirm` field equal to `"Y"` (case-insensitive) to actually commit; `"N"` or blank returns
 a `200` with an explanatory `message` and no write, and any other value is a
 `VALIDATION_FAILED`/error response — mirroring the legacy screens' Y/N confirmation gates.
+
+### Add transaction (`POST /api/transactions`) card/account resolution
+
+If both `accountId` and `cardNum` are supplied, `accountId` wins: its cross-reference lookup
+is used and `cardNum` is never checked (COTRN02C.cbl `VALIDATE-INPUT-KEY-FIELDS` evaluates the
+account id first). An unknown `accountId` is `404` `"Account ID NOT found..."`; a `cardNum`
+supplied with no matching cross-reference (and no `accountId`) is a distinct `404`
+`"Card Number NOT found..."`. The persisted `origTs`/`procTs` are the caller's own
+`origDate`/`procDate`, left-justified and space-padded to the legacy 26-char timestamp width —
+never server time.
 
 ## Pagination
 

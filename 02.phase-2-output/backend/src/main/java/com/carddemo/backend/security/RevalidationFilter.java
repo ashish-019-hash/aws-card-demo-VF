@@ -49,7 +49,7 @@ public class RevalidationFilter extends OncePerRequestFilter {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
                 Map<String, Object> body = new LinkedHashMap<>();
-                body.put("code", "SESSION_INVALID");
+                body.put("code", "UNAUTHORIZED");
                 body.put("message", "Your session is no longer valid. Please sign on again.");
                 objectMapper.writeValue(response.getWriter(), body);
                 return;

@@ -80,10 +80,11 @@ public class SeedDataLoader implements ApplicationRunner {
     }
 
     /**
-     * Runs the whole seed in one transaction. The per-table seed methods below are invoked
-     * through {@code this}, so their own {@code @Transactional} annotations are not proxied;
-     * the transaction opened here is the one that actually applies (and it keeps the seed
-     * atomic: a parse error leaves no partial data behind).
+     * Runs the whole seed in one transaction. The per-table {@code seedXxx()} methods
+     * below are private and called through {@code this} on purpose: they have no
+     * {@code @Transactional} of their own (a per-method annotation would never be
+     * proxied on a self-invocation), so this is the single transaction that actually
+     * applies — keeping the seed atomic: a parse error leaves no partial data behind.
      */
     @Override
     @Transactional
@@ -122,8 +123,7 @@ public class SeedDataLoader implements ApplicationRunner {
         }
     }
 
-    @Transactional
-    public void seedTransactionTypes() {
+    private void seedTransactionTypes() {
         if (transactionTypeRepository.count() > 0) {
             return;
         }
@@ -136,8 +136,7 @@ public class SeedDataLoader implements ApplicationRunner {
         log.info("Seeded {} transaction types", transactionTypeRepository.count());
     }
 
-    @Transactional
-    public void seedTransactionCategories() {
+    private void seedTransactionCategories() {
         if (transactionCategoryRepository.count() > 0) {
             return;
         }
@@ -145,15 +144,14 @@ public class SeedDataLoader implements ApplicationRunner {
             TransactionCategory c = new TransactionCategory();
             String typeCd = field(line, 0, 2);
             Integer catCd = parseUnsignedInt(field(line, 2, 4));
-            c.setId(new com.carddemo.backend.entity.TransactionCategoryId(typeCd, catCd));
+            c.setId(new TransactionCategoryId(typeCd, catCd));
             c.setCatTypeDesc(field(line, 6, 50).trim());
             transactionCategoryRepository.save(c);
         }
         log.info("Seeded {} transaction categories", transactionCategoryRepository.count());
     }
 
-    @Transactional
-    public void seedCustomers() {
+    private void seedCustomers() {
         if (customerRepository.count() > 0) {
             return;
         }
@@ -183,8 +181,7 @@ public class SeedDataLoader implements ApplicationRunner {
         log.info("Seeded {} customers", customerRepository.count());
     }
 
-    @Transactional
-    public void seedAccounts() {
+    private void seedAccounts() {
         if (accountRepository.count() > 0) {
             return;
         }
@@ -208,8 +205,7 @@ public class SeedDataLoader implements ApplicationRunner {
         log.info("Seeded {} accounts", accountRepository.count());
     }
 
-    @Transactional
-    public void seedDisclosureGroups() {
+    private void seedDisclosureGroups() {
         if (disclosureGroupRepository.count() > 0) {
             return;
         }
@@ -227,8 +223,7 @@ public class SeedDataLoader implements ApplicationRunner {
         log.info("Seeded {} disclosure group rows", disclosureGroupRepository.count());
     }
 
-    @Transactional
-    public void seedCards() {
+    private void seedCards() {
         if (cardRepository.count() > 0) {
             return;
         }
@@ -246,8 +241,7 @@ public class SeedDataLoader implements ApplicationRunner {
         log.info("Seeded {} cards", cardRepository.count());
     }
 
-    @Transactional
-    public void seedCardXref() {
+    private void seedCardXref() {
         if (cardXrefRepository.count() > 0) {
             return;
         }
@@ -262,8 +256,7 @@ public class SeedDataLoader implements ApplicationRunner {
         log.info("Seeded {} card-xref rows", cardXrefRepository.count());
     }
 
-    @Transactional
-    public void seedTransactionCategoryBalances() {
+    private void seedTransactionCategoryBalances() {
         if (transactionCategoryBalanceRepository.count() > 0) {
             return;
         }
@@ -281,8 +274,7 @@ public class SeedDataLoader implements ApplicationRunner {
         log.info("Seeded {} transaction category balance rows", transactionCategoryBalanceRepository.count());
     }
 
-    @Transactional
-    public void seedTransactions() {
+    private void seedTransactions() {
         if (transactionRepository.count() > 0) {
             return;
         }
@@ -322,8 +314,7 @@ public class SeedDataLoader implements ApplicationRunner {
         });
     }
 
-    @Transactional
-    public void seedUsers() {
+    private void seedUsers() {
         if (userRepository.count() > 0) {
             return;
         }

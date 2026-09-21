@@ -22,7 +22,7 @@ class CardValidationServiceTest {
         assertThatThrownBy(() -> service.validate(new CardFields(123, "", "2030-06-01", "Y")))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-064")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-064")));
     }
 
     @Test
@@ -30,7 +30,7 @@ class CardValidationServiceTest {
         assertThatThrownBy(() -> service.validate(new CardFields(123, "JOHN3", "2030-06-01", "Y")))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-065")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-065")));
     }
 
     @Test
@@ -38,7 +38,7 @@ class CardValidationServiceTest {
         assertThatThrownBy(() -> service.validate(new CardFields(123, "JOHN DOE", "2030-06-01", "X")))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-066")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-066")));
     }
 
     @Test
@@ -46,7 +46,7 @@ class CardValidationServiceTest {
         assertThatThrownBy(() -> service.validate(new CardFields(123, "JOHN DOE", "", "Y")))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-067")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-067")));
     }
 
     @Test
@@ -54,7 +54,7 @@ class CardValidationServiceTest {
         assertThatThrownBy(() -> service.validate(new CardFields(123, "JOHN DOE", "1900-06-01", "Y")))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-068")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-068")));
     }
 
     @Test
@@ -62,6 +62,21 @@ class CardValidationServiceTest {
         assertThatThrownBy(() -> service.validate(new CardFields(-1, "JOHN DOE", "2030-06-01", "Y")))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-069")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-069")));
+    }
+
+    /** Finding #6: an overlong embossed name is a 400 VALIDATION_FAILED (VR-064), not an
+     * unhandled 500 from a downstream DB column-width failure. */
+    @Test
+    void rejectsEmbossedNameLongerThan50Chars() {
+        assertThatThrownBy(() -> service.validate(new CardFields(123, "A".repeat(51), "2030-06-01", "Y")))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-064")));
+    }
+
+    @Test
+    void acceptsEmbossedNameAtExactly50Chars() {
+        service.validate(new CardFields(123, "A".repeat(50), "2030-06-01", "Y")); // must not throw
     }
 }

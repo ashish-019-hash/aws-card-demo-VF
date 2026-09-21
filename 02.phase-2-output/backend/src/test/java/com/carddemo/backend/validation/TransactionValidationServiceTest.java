@@ -34,7 +34,7 @@ class TransactionValidationServiceTest {
         assertThatThrownBy(() -> service.validate(bad))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-075")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-075")));
     }
 
     @Test
@@ -46,7 +46,7 @@ class TransactionValidationServiceTest {
         assertThatThrownBy(() -> service.validate(bad))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-076")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-076")));
     }
 
     @Test
@@ -58,7 +58,7 @@ class TransactionValidationServiceTest {
         assertThatThrownBy(() -> service.validate(bad))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-079")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-079")));
     }
 
     @Test
@@ -70,7 +70,7 @@ class TransactionValidationServiceTest {
         assertThatThrownBy(() -> service.validate(bad))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-088")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-088")));
     }
 
     @Test
@@ -82,7 +82,7 @@ class TransactionValidationServiceTest {
         assertThatThrownBy(() -> service.validate(bad))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-089")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-089")));
     }
 
     @Test
@@ -95,7 +95,7 @@ class TransactionValidationServiceTest {
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> {
                     var rules = ((ValidationFailedException) e).getErrors().stream()
-                            .map(err -> err.getRule()).toList();
+                            .map(err -> err.rule()).toList();
                     assertThat(rules).contains("VR-082", "VR-083", "VR-084", "VR-085");
                 });
     }

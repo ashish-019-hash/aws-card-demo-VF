@@ -48,9 +48,4 @@ public class SignOnService {
         }
         return user;
     }
-
-    /** BR-002: 'A' routes to the admin menu, anything else routes to the regular menu. */
-    public boolean isAdminRouting(ApplicationUser user) {
-        return user.isAdmin();
-    }
 }

@@ -23,7 +23,7 @@ class UserValidationServiceTest {
         assertThatThrownBy(() -> service.validateForCreate(r))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-118")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-118")));
     }
 
     @Test
@@ -32,7 +32,7 @@ class UserValidationServiceTest {
         assertThatThrownBy(() -> service.validateForCreate(r))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-119")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-119")));
     }
 
     @Test
@@ -46,6 +46,6 @@ class UserValidationServiceTest {
         assertThatThrownBy(() -> service.validateForUpdate(r))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-126")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-126")));
     }
 }

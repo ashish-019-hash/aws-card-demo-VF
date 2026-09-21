@@ -5,6 +5,7 @@ import com.carddemo.backend.exception.FieldError;
 import com.carddemo.backend.exception.ValidationFailedException;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -26,7 +27,7 @@ public class AccountValidationService {
     }
 
     public void validate(AccountFields f) {
-        List<FieldError> errors = CommonValidators.newList();
+        List<FieldError> errors = new ArrayList<>();
 
         CommonValidators.yesNo(errors, "activeStatus", "Account Status", "VR-015", f.activeStatus());
         CommonValidators.signed9v2(errors, "creditLimit", "Credit Limit", "VR-016", f.creditLimit());
@@ -42,9 +43,14 @@ public class AccountValidationService {
         }
 
         CommonValidators.alphaRequired(errors, "firstName", "First Name", "VR-022", f.firstName());
+        CommonValidators.maxLength(errors, "firstName", "First Name", "VR-022", f.firstName(), 25);
         CommonValidators.alphaOptional(errors, "middleName", "Middle Name", "VR-023", f.middleName());
+        CommonValidators.maxLength(errors, "middleName", "Middle Name", "VR-023", f.middleName(), 25);
         CommonValidators.alphaRequired(errors, "lastName", "Last Name", "VR-024", f.lastName());
+        CommonValidators.maxLength(errors, "lastName", "Last Name", "VR-024", f.lastName(), 25);
         CommonValidators.mandatory(errors, "addrLine1", "Address Line 1", "VR-025", f.addrLine1());
+        CommonValidators.maxLength(errors, "addrLine1", "Address Line 1", "VR-025", f.addrLine1(), 50);
+        CommonValidators.maxLength(errors, "addrLine2", "Address Line 2", "VR-025b", f.addrLine2(), 50);
 
         boolean stateOk = CommonValidators.alphaRequired(errors, "addrStateCd", "State", "VR-026",
                 f.addrStateCd());
@@ -60,6 +66,7 @@ public class AccountValidationService {
             errors.add(new FieldError("addrZip", "VR-027", "Zip must be supplied."));
             zipOk = false;
         }
+        CommonValidators.maxLength(errors, "addrZip", "Zip", "VR-027", f.addrZip(), 10);
 
         if (stateOk && zipOk && !referenceData.isValidStateZipCombo(f.addrStateCd().toUpperCase(),
                 f.addrZip().substring(0, 2))) {
@@ -67,8 +74,12 @@ public class AccountValidationService {
         }
 
         CommonValidators.alphaRequired(errors, "addrLine3", "City", "VR-028", f.addrLine3());
+        CommonValidators.maxLength(errors, "addrLine3", "City", "VR-028", f.addrLine3(), 50);
         CommonValidators.alphaRequired(errors, "addrCountryCd", "Country", "VR-029", f.addrCountryCd());
+        CommonValidators.maxLength(errors, "addrCountryCd", "Country", "VR-029", f.addrCountryCd(), 3);
         CommonValidators.numericRequired(errors, "eftAccountId", "EFT Account Id", "VR-030b", f.eftAccountId());
+        CommonValidators.maxLength(errors, "eftAccountId", "EFT Account Id", "VR-030b", f.eftAccountId(), 10);
+        CommonValidators.maxLength(errors, "govtIssuedId", "Government Issued Id", "VR-030a", f.govtIssuedId(), 20);
         CommonValidators.yesNo(errors, "priCardHolderInd", "Primary Card Holder", "VR-030c", f.priCardHolderInd());
 
         CommonValidators.dateCcyymmdd(errors, "openDate", "Open Date", "VR-030", f.openDate());
@@ -117,16 +128,36 @@ public class AccountValidationService {
         }
     }
 
-    /** VR-036..VR-039: SSN 3-2-4 digit groups, first group excludes 000/666/900-999. */
+    /** VR-036..VR-039 (COACTUPC.cbl:2430-2495): SSN 3-2-4 digit groups, each independently
+     * required + numeric (VR-013 via CommonValidators.numericRequired); the 000/666/900-999
+     * range check (VR-037) only runs once the first group itself passed. */
     private void validateSsn(List<FieldError> errors, String ssn) {
-        if (ssn == null || ssn.length() != 9 || !ssn.matches("[0-9]{9}")) {
+        String value = ssn == null ? "" : ssn;
+        if (value.length() > 9) {
             errors.add(new FieldError("ssn", "VR-036", "SSN: First 3 chars must be all numeric."));
             return;
         }
-        int first3 = Integer.parseInt(ssn.substring(0, 3));
-        if (first3 == 0 || first3 == 666 || (first3 >= 900 && first3 <= 999)) {
-            errors.add(new FieldError("ssn", "VR-037",
-                    "SSN: First 3 chars: should not be 000, 666, or between 900 and 999"));
+        String part1 = safeSubstring(value, 0, 3);
+        String part2 = safeSubstring(value, 3, 5);
+        String part3 = safeSubstring(value, 5, 9);
+
+        boolean part1Ok = CommonValidators.numericRequired(errors, "ssn", "SSN: First 3 chars", "VR-036", part1);
+        CommonValidators.numericRequired(errors, "ssn", "SSN 4th & 5th chars", "VR-038", part2);
+        CommonValidators.numericRequired(errors, "ssn", "SSN Last 4 chars", "VR-039", part3);
+
+        if (part1Ok) {
+            int first3 = Integer.parseInt(part1);
+            if (first3 == 0 || first3 == 666 || (first3 >= 900 && first3 <= 999)) {
+                errors.add(new FieldError("ssn", "VR-037",
+                        "SSN: First 3 chars: should not be 000, 666, or between 900 and 999"));
+            }
         }
+    }
+
+    private static String safeSubstring(String s, int start, int end) {
+        if (start >= s.length()) {
+            return "";
+        }
+        return s.substring(start, Math.min(end, s.length()));
     }
 }

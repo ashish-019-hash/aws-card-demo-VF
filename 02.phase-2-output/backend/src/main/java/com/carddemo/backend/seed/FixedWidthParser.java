@@ -21,7 +21,7 @@ public final class FixedWidthParser {
 
     private FixedWidthParser() { }
 
-    /** Extracts a substring field (1-based, inclusive-exclusive by length) and right-trims it. */
+    /** Extracts the substring {@code [startZeroBased, startZeroBased + length)}, with no trimming. */
     public static String field(String line, int startZeroBased, int length) {
         return line.substring(startZeroBased, startZeroBased + length);
     }

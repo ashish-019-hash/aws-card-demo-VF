@@ -108,21 +108,42 @@ public class TransactionService {
         t.setMerchantCity(request.merchantCity());
         t.setMerchantZip(request.merchantZip());
         t.setCardNum(cardNum);
-        t.setOrigTs(nowTimestamp());
-        t.setProcTs(nowTimestamp());
+        t.setOrigTs(padTimestamp(request.origDate()));
+        t.setProcTs(padTimestamp(request.procDate()));
 
         transactionRepository.save(t);
         return new TransactionAddResponse(tranId, toDetail(t));
     }
 
+    /**
+     * COTRN02C.cbl:464-465 moves the 10-char screen date (TORIGDTI/TPROCDTI, PIC X(10))
+     * directly into the 26-char timestamp field (TRAN-ORIG-TS/TRAN-PROC-TS, PIC X(26)).
+     * A COBOL alphanumeric MOVE of a shorter source into a longer target left-justifies
+     * the value and pads the remainder with spaces, so the legacy persisted form is the
+     * entered {@code YYYY-MM-DD} date followed by 16 trailing spaces (not a synthesized
+     * time-of-day) — confirmed against {@code 00.phase-1-input/cpy-bms/COTRN02.CPY:102,108}.
+     */
+    private static String padTimestamp(String date) {
+        return String.format("%-26s", date);
+    }
+
+    /**
+     * COTRN02C.cbl VALIDATE-INPUT-KEY-FIELDS evaluates the account id first; the card
+     * number is only consulted when no account id was supplied (COTRN02C.cbl:194-224).
+     * Both account id and card number are existence-checked against the CXACAIX/CCXREF
+     * cross-reference files (READ-CXACAIX-FILE / READ-CCXREF-FILE) before being accepted.
+     */
     private String resolveCardNum(Long accountId, String cardNum) {
-        if (cardNum != null && !cardNum.isBlank()) {
-            return cardNum;
-        }
         if (accountId != null) {
             CardXref xref = cardXrefRepository.findFirstByAcctId(accountId)
                     .orElseThrow(() -> new NotFoundException("Account ID NOT found..."));
             return xref.getCardNum();
+        }
+        if (cardNum != null && !cardNum.isBlank()) {
+            if (!cardXrefRepository.existsById(cardNum)) {
+                throw new NotFoundException("Card Number NOT found...");
+            }
+            return cardNum;
         }
         throw new ValidationFailedException(List.of(new FieldError("accountId", "VR-074",
                 "Account or Card Number must be entered...")));

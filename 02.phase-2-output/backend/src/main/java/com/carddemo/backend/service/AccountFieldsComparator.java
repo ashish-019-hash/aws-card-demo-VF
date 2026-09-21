@@ -26,9 +26,9 @@ final class AccountFieldsComparator {
                 && numEq(a.currBal(), b.currBal())
                 && numEq(a.currCycCredit(), b.currCycCredit())
                 && numEq(a.currCycDebit(), b.currCycDebit())
-                && exact(a.openDate(), b.openDate())
-                && exact(a.expirationDate(), b.expirationDate())
-                && exact(a.reissueDate(), b.reissueDate())
+                && Objects.equals(a.openDate(), b.openDate())
+                && Objects.equals(a.expirationDate(), b.expirationDate())
+                && Objects.equals(a.reissueDate(), b.reissueDate())
                 && ci(a.groupId(), b.groupId())
                 && trimmedCi(a.firstName(), b.firstName())
                 && trimmedCi(a.middleName(), b.middleName())
@@ -36,19 +36,17 @@ final class AccountFieldsComparator {
                 && trimmedCi(a.addrLine1(), b.addrLine1())
                 && trimmedCi(a.addrLine2(), b.addrLine2())
                 && trimmedCi(a.addrLine3(), b.addrLine3())
-                && exact(a.addrZip(), b.addrZip())
-                && exact(a.phoneNum1(), b.phoneNum1())
-                && exact(a.phoneNum2(), b.phoneNum2())
-                && exact(a.ssn(), b.ssn())
+                && trimmedCi(a.addrStateCd(), b.addrStateCd())
+                && trimmedCi(a.addrCountryCd(), b.addrCountryCd())
+                && Objects.equals(a.addrZip(), b.addrZip())
+                && Objects.equals(a.phoneNum1(), b.phoneNum1())
+                && Objects.equals(a.phoneNum2(), b.phoneNum2())
+                && Objects.equals(a.ssn(), b.ssn())
                 && trimmedCi(a.govtIssuedId(), b.govtIssuedId())
-                && exact(a.dob(), b.dob())
-                && exact(a.eftAccountId(), b.eftAccountId())
-                && exact(a.priCardHolderInd(), b.priCardHolderInd())
+                && Objects.equals(a.dob(), b.dob())
+                && Objects.equals(a.eftAccountId(), b.eftAccountId())
+                && Objects.equals(a.priCardHolderInd(), b.priCardHolderInd())
                 && Objects.equals(a.ficoCreditScore(), b.ficoCreditScore());
-    }
-
-    private static boolean exact(String x, String y) {
-        return Objects.equals(x, y);
     }
 
     private static boolean ci(String x, String y) {

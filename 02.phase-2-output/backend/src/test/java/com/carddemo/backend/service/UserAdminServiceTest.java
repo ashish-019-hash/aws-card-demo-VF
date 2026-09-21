@@ -43,7 +43,7 @@ class UserAdminServiceTest {
         UserResponse resp = service.create(new UserRequest("NEWUSR01", "JOHN", "DOE", "PASSWORD", "U"));
 
         assertThat(resp.userId()).isEqualTo("NEWUSR01");
-        verify(userRepository).save(any());
+        verify(userRepository).saveAndFlush(any());
     }
 
     @Test
@@ -52,7 +52,20 @@ class UserAdminServiceTest {
 
         assertThatThrownBy(() -> service.create(new UserRequest("ADMIN001", "A", "B", "PASSWORD", "A")))
                 .isInstanceOf(ConflictException.class);
-        verify(userRepository, never()).save(any());
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void createRejectsWhenSaveAndFlushHitsUniqueConstraintRace() {
+        // Simulates a genuine race: existsById passes for both concurrent callers, but the
+        // second saveAndFlush() hits the DB-level unique constraint on users_pkey.
+        when(userRepository.existsById("RACEUSR1")).thenReturn(false);
+        when(userRepository.saveAndFlush(any()))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"));
+
+        assertThatThrownBy(() -> service.create(new UserRequest("RACEUSR1", "A", "B", "PASSWORD", "U")))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("User ID already exist");
     }
 
     @Test

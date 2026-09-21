@@ -41,7 +41,7 @@ class SignOnServiceTest {
         ApplicationUser result = service.signOn("admin001", "password");
 
         assertThat(result.getUserId()).isEqualTo("ADMIN001");
-        assertThat(service.isAdminRouting(result)).isTrue();
+        assertThat(result.isAdmin()).isTrue();
     }
 
     @Test

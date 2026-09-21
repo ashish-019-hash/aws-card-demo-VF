@@ -105,8 +105,8 @@ class AccountServiceTest {
         AccountUpdateResponse resp = service.updateAccount(ACCT_ID, new AccountUpdateRequest(same, same));
 
         assertThat(resp.changed()).isFalse();
-        verify(accountRepository, never()).save(any());
-        verify(customerRepository, never()).save(any());
+        verify(accountRepository, never()).saveAndFlush(any());
+        verify(customerRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -120,7 +120,7 @@ class AccountServiceTest {
         assertThatThrownBy(() -> service.updateAccount(ACCT_ID, new AccountUpdateRequest(staleExpected, updated)))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("DATA_CHANGED");
-        verify(accountRepository, never()).save(any());
+        verify(accountRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -138,8 +138,8 @@ class AccountServiceTest {
         assertThat(resp.changed()).isTrue();
         assertThat(account.getCurrBal()).isEqualByComparingTo("200.00");
         assertThat(customer.getLastName()).isEqualTo("SMITH");
-        verify(accountRepository).save(account);
-        verify(customerRepository).save(customer);
+        verify(accountRepository).saveAndFlush(account);
+        verify(customerRepository).saveAndFlush(customer);
     }
 
     @Test
@@ -151,7 +151,7 @@ class AccountServiceTest {
         Customer customer = customerEntity();
         when(accountRepository.findByIdForUpdate(ACCT_ID)).thenReturn(Optional.of(account));
         when(customerRepository.findByIdForUpdate(CUST_ID)).thenReturn(Optional.of(customer));
-        when(accountRepository.save(account)).thenThrow(new RuntimeException("db error"));
+        when(accountRepository.saveAndFlush(account)).thenThrow(new RuntimeException("db error"));
 
         assertThatThrownBy(() -> service.updateAccount(ACCT_ID, new AccountUpdateRequest(expected, updated)))
                 .isInstanceOf(ConflictException.class)

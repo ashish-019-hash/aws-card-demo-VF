@@ -38,7 +38,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-015")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-015")));
     }
 
     @Test
@@ -53,7 +53,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-040")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-040")));
     }
 
     @Test
@@ -68,7 +68,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-041")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-041")));
     }
 
     @Test
@@ -83,7 +83,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-042")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-042")));
     }
 
     @Test
@@ -92,7 +92,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-046")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-046")));
     }
 
     @Test
@@ -101,7 +101,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-047")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-047")));
     }
 
     @Test
@@ -110,7 +110,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-050")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-050")));
     }
 
     @Test
@@ -119,7 +119,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-053")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-053")));
     }
 
     @Test
@@ -140,7 +140,7 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-037")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-037")));
     }
 
     @Test
@@ -155,7 +155,57 @@ class AccountValidationServiceTest {
         assertThatThrownBy(() -> service.validate(f))
                 .isInstanceOf(ValidationFailedException.class)
                 .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
-                        .anySatisfy(err -> assertThat(err.getRule()).isEqualTo("VR-035")));
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-035")));
+    }
+
+    /** Finding #6: an overlong field is a 400 VALIDATION_FAILED (VR-022), not an unhandled
+     * 500 from a downstream DB column-width failure. */
+    @Test
+    void rejectsFirstNameLongerThan25Chars() {
+        AccountFields f = withFirstName(validFields(), "A".repeat(26));
+        assertThatThrownBy(() -> service.validate(f))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-022")));
+    }
+
+    @Test
+    void acceptsFirstNameAtExactly25Chars() {
+        AccountFields f = withFirstName(validFields(), "A".repeat(25));
+        service.validate(f); // must not throw
+    }
+
+    /** Finding #6: SSN's three groups (VR-036/VR-038/VR-039) are each validated
+     * independently — a bad middle group must not be masked by the first/last groups
+     * being fine. */
+    @Test
+    void rejectsNonNumericSecondSsnGroup() {
+        AccountFields f = withSsn(validFields(), "123XX6789");
+        assertThatThrownBy(() -> service.validate(f))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-038")));
+    }
+
+    @Test
+    void rejectsNonNumericThirdSsnGroup() {
+        AccountFields f = withSsn(validFields(), "123456XXX");
+        assertThatThrownBy(() -> service.validate(f))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-039")));
+    }
+
+    /** Finding #6: VR-037 (000/666/900-999 range check) only runs once the first SSN group
+     * itself passed as numeric — it must not fire (or mask VR-036) when the first group is
+     * non-numeric. */
+    @Test
+    void nonNumericFirstSsnGroupDoesNotAlsoTriggerRangeCheck() {
+        AccountFields f = withSsn(validFields(), "12X456789");
+        assertThatThrownBy(() -> service.validate(f))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .noneSatisfy(err -> assertThat(err.rule()).isEqualTo("VR-037")));
     }
 
     private AccountFields withActiveStatus(AccountFields b, String activeStatus) {
@@ -172,5 +222,21 @@ class AccountValidationServiceTest {
                 b.firstName(), b.middleName(), b.lastName(), b.addrLine1(), b.addrLine2(), b.addrLine3(),
                 b.addrStateCd(), b.addrCountryCd(), b.addrZip(), phone, b.phoneNum2(), b.ssn(), b.govtIssuedId(),
                 b.dob(), b.eftAccountId(), b.priCardHolderInd(), b.ficoCreditScore());
+    }
+
+    private AccountFields withFirstName(AccountFields b, String firstName) {
+        return new AccountFields(b.activeStatus(), b.creditLimit(), b.cashCreditLimit(), b.currBal(),
+                b.currCycCredit(), b.currCycDebit(), b.openDate(), b.expirationDate(), b.reissueDate(), b.groupId(),
+                firstName, b.middleName(), b.lastName(), b.addrLine1(), b.addrLine2(), b.addrLine3(),
+                b.addrStateCd(), b.addrCountryCd(), b.addrZip(), b.phoneNum1(), b.phoneNum2(), b.ssn(),
+                b.govtIssuedId(), b.dob(), b.eftAccountId(), b.priCardHolderInd(), b.ficoCreditScore());
+    }
+
+    private AccountFields withSsn(AccountFields b, String ssn) {
+        return new AccountFields(b.activeStatus(), b.creditLimit(), b.cashCreditLimit(), b.currBal(),
+                b.currCycCredit(), b.currCycDebit(), b.openDate(), b.expirationDate(), b.reissueDate(), b.groupId(),
+                b.firstName(), b.middleName(), b.lastName(), b.addrLine1(), b.addrLine2(), b.addrLine3(),
+                b.addrStateCd(), b.addrCountryCd(), b.addrZip(), b.phoneNum1(), b.phoneNum2(), ssn,
+                b.govtIssuedId(), b.dob(), b.eftAccountId(), b.priCardHolderInd(), b.ficoCreditScore());
     }
 }

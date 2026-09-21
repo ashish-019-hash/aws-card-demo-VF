@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -148,19 +147,27 @@ public final class CommonValidators {
     /** VR-035 (EDIT-DATE-OF-BIRTH): must be strictly before today. Only meaningful after dateCcyymmdd passed. */
     public static boolean dateOfBirthNotFuture(List<FieldError> errors, String field, String label, String rule,
                                                 String value) {
-        try {
-            LocalDate dob = LocalDate.parse(value, ISO);
-            if (!dob.isBefore(LocalDate.now())) {
-                errors.add(new FieldError(field, rule, label + ":cannot be in the future "));
-                return false;
-            }
-        } catch (DateTimeParseException e) {
-            // format failure already reported by dateCcyymmdd
+        LocalDate dob = LocalDate.parse(value, ISO);
+        if (!dob.isBefore(LocalDate.now())) {
+            errors.add(new FieldError(field, rule, label + ":cannot be in the future "));
+            return false;
         }
         return true;
     }
 
-    public static List<FieldError> newList() {
-        return new ArrayList<>();
+    /**
+     * Legacy field-width guard: the online screens physically cannot accept more
+     * characters than the BMS field allows, but this REST API has no such limit, so an
+     * overlong value must be rejected here rather than surfacing as a database
+     * "value too long for type" error. {@code max} is the column width from
+     * business-entities.md / V1__schema.sql.
+     */
+    public static boolean maxLength(List<FieldError> errors, String field, String label, String rule,
+                                     String value, int max) {
+        if (value != null && value.length() > max) {
+            errors.add(new FieldError(field, rule, label + " must not exceed " + max + " characters."));
+            return false;
+        }
+        return true;
     }
 }

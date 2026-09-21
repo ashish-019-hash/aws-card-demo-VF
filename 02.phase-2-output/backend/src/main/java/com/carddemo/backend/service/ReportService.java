@@ -58,8 +58,8 @@ public class ReportService {
         }
         if (!"Y".equalsIgnoreCase(confirm)) {
             // VR-114: any value other than Y/N is rejected.
-            return new ReportResponse(false, start.format(ISO), end.format(ISO),
-                    "\"" + confirm + "\" is not a valid value to confirm...");
+            throw new ValidationFailedException(List.of(new FieldError("confirm", "VR-114",
+                    "\"" + confirm + "\" is not a valid value to confirm...")));
         }
         return new ReportResponse(true, start.format(ISO), end.format(ISO), "Report job submitted.");
     }

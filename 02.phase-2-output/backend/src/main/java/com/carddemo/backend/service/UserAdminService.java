@@ -60,7 +60,11 @@ public class UserAdminService {
         user.setPassword(request.password());
         user.setUserType(request.userType());
         try {
-            userRepository.save(user);
+            // saveAndFlush: a plain save() only queues the INSERT for commit-time flush,
+            // so a genuine race (two concurrent creates for the same userId both passing
+            // the existsById pre-check above) would never be caught here without flushing
+            // synchronously inside the try.
+            userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             throw new ConflictException("User ID already exist...");
         }

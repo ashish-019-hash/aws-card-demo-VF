@@ -77,7 +77,9 @@ public class CardService {
         card.setExpirationDate(request.updated().expirationDate());
         card.setActiveStatus(request.updated().activeStatus());
         try {
-            cardRepository.save(card);
+            // saveAndFlush: see AccountService.updateAccount for why a plain save()
+            // would never let this catch block observe a real DB-level failure.
+            cardRepository.saveAndFlush(card);
         } catch (RuntimeException e) {
             throw new ConflictException("UPDATE_FAILED: The update could not be saved. Please try again.");
         }

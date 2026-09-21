@@ -95,10 +95,12 @@ mvn test      # unit + integration tests (Testcontainers spins up postgres:16-al
 mvn verify    # full build lifecycle
 ```
 
-As of this writing: **110 tests**, all passing (99 unit tests across validation/service
-layers + 11 `@SpringBootTest`/Testcontainers integration tests in
+As of this writing: **127 tests**, all passing (113 unit tests across validation/service
+layers + 14 `@SpringBootTest`/Testcontainers integration tests in
 `ApplicationIntegrationTest` covering sign-on, account view, transaction-add id
-allocation, bill payment, report submission, and admin-only user management).
+allocation, bill payment, report submission, admin-only user management, and three
+genuine-concurrency scenarios: concurrent transaction-id allocation, concurrent account
+update conflict, and concurrent duplicate user creation).
 
 ### Troubleshooting
 
@@ -117,6 +119,13 @@ allocation, bill payment, report submission, and admin-only user management).
   `HttpURLConnection` bug when a POST body is combined with a 401 response. Fixed by adding
   `org.apache.httpcomponents.client5:httpclient5` (test scope) so Spring Boot autoconfigures
   `TestRestTemplate`/`RestTemplateBuilder` to use Apache HttpClient instead of the JDK's client.
+- **`transactions` insert fails with `foreign key constraint "transactions_type_fkey"` under
+  the `test` profile** — `V2__transaction_reference_fks.sql` added FK constraints from
+  `transactions` to the `transaction_types`/`transaction_categories` reference/master tables.
+  In `dev`, `SeedDataLoader` (profile-gated) loads those tables from
+  `seed-data/trantype.txt`/`trancatg.txt`; the `test` profile never runs that loader
+  (`carddemo.seed.enabled=false`), so `ApplicationIntegrationTest` seeds the one type/category
+  row its own tests write (`"02"`/`2`) directly via `ensureTransactionReferenceData()`.
 
 ## Known gaps / documented legacy quirks (carried forward, not silently "fixed")
 

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Card List/View/Update (COCRDLIC/COCRDSLC/COCRDUPC): BR-009/BR-014/BR-015. */
@@ -34,7 +35,7 @@ public class CardController {
     public CardListResponse search(@RequestParam(required = false) Long acctId,
                                     @RequestParam(required = false) String cardNum,
                                     @RequestParam(defaultValue = "0") int page) {
-        List<FieldError> errors = CommonValidators.newList();
+        List<FieldError> errors = new ArrayList<>();
         CommonValidators.numericFilterOptional(errors, "cardNum", "VR-055", cardNum, 16,
                 "CARD ID FILTER,IF SUPPLIED MUST BE A 16 DIGIT NUMBER");
         if (!errors.isEmpty()) {
