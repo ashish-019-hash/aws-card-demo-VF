@@ -1,5 +1,6 @@
 package com.carddemo.backend.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -15,6 +16,9 @@ import java.util.Map;
  * {@code { "code": "VALIDATION_FAILED", "message": "...", "errors": [{ "field", "rule", "message" }] } }.
  * {@link FieldError} is a record whose component names already match that JSON shape, so
  * Jackson serializes {@code ex.getErrors()} directly with no intermediate mapping step.
+ * {@code CONFLICT} responses additionally carry a {@code reason} field
+ * ({@code "DATA_CHANGED"} | {@code "UPDATE_FAILED"}) when the conflict has one — see
+ * {@link ConflictException#getReason()}.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -35,7 +39,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<Map<String, Object>> handleConflict(ConflictException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(simple("CONFLICT", ex.getMessage()));
+        Map<String, Object> body = simple("CONFLICT", ex.getMessage());
+        if (ex.getReason() != null) {
+            body.put("reason", ex.getReason());
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    /**
+     * Safety net: a DB-level FK/unique-constraint violation that reaches the controller layer
+     * without being pre-checked by a service (e.g. an unanticipated constraint) must never
+     * surface as a raw 500 — map it to a 409 with a non-technical message instead.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(simple("CONFLICT", "The request could not be completed because it conflicts with existing data."));
     }
 
     @ExceptionHandler(BadCredentialsException.class)

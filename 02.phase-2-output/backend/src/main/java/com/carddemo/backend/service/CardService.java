@@ -67,9 +67,7 @@ public class CardService {
 
         CardFields live = toFields(card);
         if (!fieldsEqual(live, request.expected())) {
-            throw new ConflictException(
-                    "DATA_CHANGED: This record has been changed by another user since it was read. "
-                            + "Please review the current values and try again.");
+            throw new ConflictException("DATA_CHANGED", "Record changed by some one else. Please review");
         }
 
         card.setCvvCd(request.updated().cvvCd());
@@ -81,7 +79,7 @@ public class CardService {
             // would never let this catch block observe a real DB-level failure.
             cardRepository.saveAndFlush(card);
         } catch (RuntimeException e) {
-            throw new ConflictException("UPDATE_FAILED: The update could not be saved. Please try again.");
+            throw new ConflictException("UPDATE_FAILED", "Update of record failed");
         }
 
         return new CardUpdateResponse(true, toDetail(card));

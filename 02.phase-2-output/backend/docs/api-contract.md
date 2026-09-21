@@ -40,11 +40,13 @@ All error responses share this shape:
 {
   "code": "VALIDATION_FAILED | NOT_FOUND | CONFLICT | UNAUTHORIZED | FORBIDDEN",
   "message": "human-readable summary",
-  "errors": [ { "field": "...", "rule": "VR-###", "message": "..." } ]
+  "errors": [ { "field": "...", "rule": "VR-###", "message": "..." } ],
+  "reason": "DATA_CHANGED | UPDATE_FAILED"
 }
 ```
 
-`errors` is present only for `VALIDATION_FAILED` (400). Status code mapping:
+`errors` is present only for `VALIDATION_FAILED` (400). `reason` is present only for some
+`CONFLICT` (409) responses — see the table below. Status code mapping:
 
 | `code` | HTTP status | Thrown by |
 |---|---|---|
@@ -52,7 +54,7 @@ All error responses share this shape:
 | `UNAUTHORIZED` | 401 | `BadCredentialsException` (bad sign-on), or `RevalidationFilter` rejecting an established session whose user no longer exists/is otherwise invalid on a later request |
 | `FORBIDDEN` | 403 | `AccessDeniedException` (non-admin hitting `/api/users/**`) |
 | `NOT_FOUND` | 404 | `NotFoundException` (unknown account/card/transaction/user id) |
-| `CONFLICT` | 409 | `ConflictException` — message is prefixed `DATA_CHANGED:` (stale optimistic-lock snapshot) or `UPDATE_FAILED:` (downstream write failure), or is a plain message for user-id-already-exists / bill-payment allocator issues |
+| `CONFLICT` | 409 | `ConflictException`. For account/card update conflicts the envelope carries a `reason` of `"DATA_CHANGED"` (stale optimistic-lock snapshot, message is the exact legacy text `"Record changed by some one else. Please review"`, COACTUPC/COCRDUPC) or `"UPDATE_FAILED"` (downstream write failure, message `"Update of record failed"`, same legacy literal). Duplicate-user-id and transaction-id-allocator conflicts are also `CONFLICT` but carry no `reason` field (they have no legacy DATA_CHANGED/UPDATE_FAILED distinction). Any other `DataIntegrityViolationException` (FK/unique-constraint violation) that reaches the controller without a prior service-level check is also mapped to `CONFLICT` with a generic, non-technical message — a safety net so no such violation ever surfaces as a raw 500. |
 
 ## Optimistic concurrency (accounts, cards)
 
@@ -61,9 +63,13 @@ All error responses share this shape:
 
 - `updated` field-for-field equal to `expected` → `200 {"changed": false, ...}`, nothing
   written (BR-006).
-- Live record no longer matches `expected` → `409 CONFLICT` (`DATA_CHANGED: ...`); client
-  must re-`GET` for a fresh snapshot before retrying.
+- Live record no longer matches `expected` → `409 CONFLICT` with `"reason":"DATA_CHANGED"`
+  and message `"Record changed by some one else. Please review"` (exact legacy text,
+  STORY-018/STORY-026); client must re-`GET` for a fresh snapshot before retrying.
+- Live record matches `expected` but the write itself fails → `409 CONFLICT` with
+  `"reason":"UPDATE_FAILED"` and message `"Update of record failed"` (same legacy literal).
 - Live record matches `expected` → applies `updated`, saves, returns `200 {"changed": true, ...}`.
+
 
 ## Confirm-gated actions (transactions, bill payments, reports)
 
@@ -81,6 +87,17 @@ supplied with no matching cross-reference (and no `accountId`) is a distinct `40
 `"Card Number NOT found..."`. The persisted `origTs`/`procTs` are the caller's own
 `origDate`/`procDate`, left-justified and space-padded to the legacy 26-char timestamp width —
 never server time.
+
+**`typeCd`/`catCd` referential-integrity check (VR-REF-001/VR-REF-002 — modernization rules,
+not in the legacy VR-\* catalog):** COTRN02C.cbl only checks that `typeCd`/`catCd` are numeric
+(VR-086/VR-076); it never verifies the pair actually exists in `TRANTYPE`/`TRANCATG` before
+writing. This backend enforces the `transactions_type_fkey`/`transactions_category_fkey`
+constraints added by `V2__transaction_reference_fks.sql`, so an unknown `typeCd` (e.g. `"99"`)
+or a numerically-valid but non-existent `typeCd`/`catCd` combination (e.g. type `"02"`
+category `5`) is rejected as `400 VALIDATION_FAILED` — field `tranTypeCd`/rule `VR-REF-001`
+(`"Transaction Type Code not found..."`) or field `tranCatCd`/rule `VR-REF-002`
+(`"Transaction Category Code not found for this Type..."`) — instead of surfacing as a `500`
+from the FK violation at flush time.
 
 ## Pagination
 

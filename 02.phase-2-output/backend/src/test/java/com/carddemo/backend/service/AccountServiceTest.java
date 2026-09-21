@@ -119,7 +119,8 @@ class AccountServiceTest {
 
         assertThatThrownBy(() -> service.updateAccount(ACCT_ID, new AccountUpdateRequest(staleExpected, updated)))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("DATA_CHANGED");
+                .hasMessage("Record changed by some one else. Please review")
+                .satisfies(e -> assertThat(((ConflictException) e).getReason()).isEqualTo("DATA_CHANGED"));
         verify(accountRepository, never()).saveAndFlush(any());
     }
 
@@ -155,6 +156,7 @@ class AccountServiceTest {
 
         assertThatThrownBy(() -> service.updateAccount(ACCT_ID, new AccountUpdateRequest(expected, updated)))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("UPDATE_FAILED");
+                .hasMessage("Update of record failed")
+                .satisfies(e -> assertThat(((ConflictException) e).getReason()).isEqualTo("UPDATE_FAILED"));
     }
 }

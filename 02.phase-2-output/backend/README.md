@@ -95,8 +95,8 @@ mvn test      # unit + integration tests (Testcontainers spins up postgres:16-al
 mvn verify    # full build lifecycle
 ```
 
-As of this writing: **127 tests**, all passing (113 unit tests across validation/service
-layers + 14 `@SpringBootTest`/Testcontainers integration tests in
+As of this writing: **134 tests**, all passing (118 unit tests across validation/service
+layers + 16 `@SpringBootTest`/Testcontainers integration tests in
 `ApplicationIntegrationTest` covering sign-on, account view, transaction-add id
 allocation, bill payment, report submission, admin-only user management, and three
 genuine-concurrency scenarios: concurrent transaction-id allocation, concurrent account
@@ -146,3 +146,27 @@ update conflict, and concurrent duplicate user creation).
 - CBTRN03C (nightly batch posting) and online CICS maintenance for `TRANTYPE`/`TRANCATG`/
   `TCATBALF`/`DISCGRP` reference tables were out of scope for this REST migration (no
   corresponding legacy online screens existed for the latter four).
+
+## Backend deviations from legacy behavior (deliberate modernization decisions)
+
+Unlike "Known gaps" above (legacy quirks preserved as-is), these are cases where this
+backend intentionally enforces something the legacy COBOL did not:
+
+- **VR-REF-001 / VR-REF-002 (add transaction `typeCd`/`catCd` referential integrity).**
+  COTRN02C.cbl only checks that `typeCd`/`catCd` are numeric (VR-086/VR-076); it never
+  verifies the pair exists in `TRANTYPE`/`TRANCATG` before writing a transaction record —
+  a numerically-valid but nonexistent combination (e.g. type `02` category `5`) would have
+  been silently written by the legacy system. `V2__transaction_reference_fks.sql` added real
+  FK constraints (`transactions_type_fkey`, `transactions_category_fkey`) for referential
+  integrity, so `TransactionService.addTransaction` now checks
+  `TransactionTypeRepository`/`TransactionCategoryRepository` existence *before* allocating a
+  transaction id and rejects an unknown combination as `400 VALIDATION_FAILED`
+  (`tranTypeCd`/`VR-REF-001` or `tranCatCd`/`VR-REF-002`) instead of letting it hit the FK
+  constraint at flush time and surface as a `500`. These two rule ids are new — deliberately
+  outside the `VR-001`..`VR-128` range from `01.phase-1-output/validation-rules.md` — to mark
+  them as modernization rules with no legacy counterpart, not omissions from that catalog.
+- **Generic `DataIntegrityViolationException` → 409 safety net.** Any other DB-level FK or
+  unique-constraint violation that reaches the controller layer without a prior service-level
+  check (an unanticipated case) is mapped by `GlobalExceptionHandler` to `409 CONFLICT` with a
+  non-technical message, so no such violation can ever surface to a caller as a raw `500`.
+

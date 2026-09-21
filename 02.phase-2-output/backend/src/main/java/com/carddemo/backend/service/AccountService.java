@@ -78,9 +78,7 @@ public class AccountService {
 
         AccountFields live = toFields(account, customer);
         if (!AccountFieldsComparator.equal(live, request.expected())) {
-            throw new ConflictException(
-                    "DATA_CHANGED: This record has been changed by another user since it was read. "
-                            + "Please review the current values and try again.");
+            throw new ConflictException("DATA_CHANGED", "Record changed by some one else. Please review");
         }
 
         applyFields(account, customer, request.updated());
@@ -91,7 +89,7 @@ public class AccountService {
             accountRepository.saveAndFlush(account);
             customerRepository.saveAndFlush(customer);
         } catch (RuntimeException e) {
-            throw new ConflictException("UPDATE_FAILED: The update could not be saved. Please try again.");
+            throw new ConflictException("UPDATE_FAILED", "Update of record failed");
         }
 
         return new AccountUpdateResponse(true, toView(account, customer, xref.getCardNum()));

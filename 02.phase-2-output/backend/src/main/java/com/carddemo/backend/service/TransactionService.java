@@ -8,13 +8,16 @@ import com.carddemo.backend.dto.TransactionSummary;
 import com.carddemo.backend.entity.CardXref;
 import com.carddemo.backend.entity.Transaction;
 import com.carddemo.backend.entity.TranIdAllocator;
+import com.carddemo.backend.entity.TransactionCategoryId;
 import com.carddemo.backend.exception.ConflictException;
 import com.carddemo.backend.exception.NotFoundException;
 import com.carddemo.backend.exception.ValidationFailedException;
 import com.carddemo.backend.exception.FieldError;
 import com.carddemo.backend.repository.CardXrefRepository;
 import com.carddemo.backend.repository.TranIdAllocatorRepository;
+import com.carddemo.backend.repository.TransactionCategoryRepository;
 import com.carddemo.backend.repository.TransactionRepository;
+import com.carddemo.backend.repository.TransactionTypeRepository;
 import com.carddemo.backend.validation.TransactionValidationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -46,14 +50,20 @@ public class TransactionService {
     private final CardXrefRepository cardXrefRepository;
     private final TranIdAllocatorRepository tranIdAllocatorRepository;
     private final TransactionValidationService transactionValidationService;
+    private final TransactionTypeRepository transactionTypeRepository;
+    private final TransactionCategoryRepository transactionCategoryRepository;
 
     public TransactionService(TransactionRepository transactionRepository, CardXrefRepository cardXrefRepository,
                                TranIdAllocatorRepository tranIdAllocatorRepository,
-                               TransactionValidationService transactionValidationService) {
+                               TransactionValidationService transactionValidationService,
+                               TransactionTypeRepository transactionTypeRepository,
+                               TransactionCategoryRepository transactionCategoryRepository) {
         this.transactionRepository = transactionRepository;
         this.cardXrefRepository = cardXrefRepository;
         this.tranIdAllocatorRepository = tranIdAllocatorRepository;
         this.transactionValidationService = transactionValidationService;
+        this.transactionTypeRepository = transactionTypeRepository;
+        this.transactionCategoryRepository = transactionCategoryRepository;
     }
 
     @Transactional(readOnly = true)
@@ -92,6 +102,7 @@ public class TransactionService {
                     "Confirm to add this transaction...")));
         }
         transactionValidationService.validate(request);
+        validateTypeAndCategoryExist(request.typeCd(), request.catCd());
 
         String cardNum = resolveCardNum(request.accountId(), request.cardNum());
 
@@ -128,6 +139,27 @@ public class TransactionService {
     }
 
     /**
+     * <b>Modernization rule (not in the legacy catalog):</b> COTRN02C.cbl only checks that
+     * TTYPCD/TCATCD are numeric (VR-086, VR-076) — it never verifies the pair actually exists
+     * in TRANTYPE/TRANCATG before writing the transaction. This backend enforces the
+     * {@code transactions_type_fkey}/{@code transactions_category_fkey} DB constraints added in
+     * {@code V2__transaction_reference_fks.sql}, so an unknown type/category combination must be
+     * rejected cleanly here (as VR-REF-001/VR-REF-002) rather than surfacing as a 500 from an
+     * FK violation at flush time.
+     */
+    private void validateTypeAndCategoryExist(String typeCd, Integer catCd) {
+        List<FieldError> errors = new ArrayList<>();
+        if (!transactionTypeRepository.existsById(typeCd)) {
+            errors.add(new FieldError("tranTypeCd", "VR-REF-001", "Transaction Type Code not found..."));
+        } else if (!transactionCategoryRepository.existsById(new TransactionCategoryId(typeCd, catCd))) {
+            errors.add(new FieldError("tranCatCd", "VR-REF-002", "Transaction Category Code not found for this Type..."));
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationFailedException(errors);
+        }
+    }
+
+    /**
      * COTRN02C.cbl VALIDATE-INPUT-KEY-FIELDS evaluates the account id first; the card
      * number is only consulted when no account id was supplied (COTRN02C.cbl:194-224).
      * Both account id and card number are existence-checked against the CXACAIX/CCXREF
@@ -152,7 +184,7 @@ public class TransactionService {
     /** BR-010 (modernized): atomically read-and-increment the allocator row under lock. */
     String nextTranId() {
         TranIdAllocator allocator = tranIdAllocatorRepository.lockRow()
-                .orElseThrow(() -> new ConflictException("UPDATE_FAILED: Transaction ID allocator is missing."));
+                .orElseThrow(() -> new ConflictException("UPDATE_FAILED", "Transaction ID allocator is missing."));
         long id = allocator.getNextTranId();
         allocator.setNextTranId(id + 1);
         tranIdAllocatorRepository.save(allocator);

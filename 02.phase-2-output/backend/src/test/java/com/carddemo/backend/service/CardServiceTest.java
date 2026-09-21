@@ -72,7 +72,8 @@ class CardServiceTest {
 
         assertThatThrownBy(() -> service.updateCard(CARD_NUM, new CardUpdateRequest(staleExpected, updated)))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("DATA_CHANGED");
+                .hasMessage("Record changed by some one else. Please review")
+                .satisfies(e -> assertThat(((ConflictException) e).getReason()).isEqualTo("DATA_CHANGED"));
         verify(cardRepository, never()).saveAndFlush(any());
     }
 
@@ -100,7 +101,8 @@ class CardServiceTest {
 
         assertThatThrownBy(() -> service.updateCard(CARD_NUM, new CardUpdateRequest(expected, updated)))
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("UPDATE_FAILED");
+                .hasMessage("Update of record failed")
+                .satisfies(e -> assertThat(((ConflictException) e).getReason()).isEqualTo("UPDATE_FAILED"));
     }
 
     @Test

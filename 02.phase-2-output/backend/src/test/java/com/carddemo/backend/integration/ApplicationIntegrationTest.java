@@ -328,7 +328,8 @@ class ApplicationIntegrationTest {
             List<Integer> statuses = List.of(responseA.getStatusCode().value(), responseB.getStatusCode().value());
             assertThat(statuses).containsExactlyInAnyOrder(200, 409);
             String conflictBody = responseA.getStatusCode().value() == 409 ? responseA.getBody() : responseB.getBody();
-            assertThat(conflictBody).contains("DATA_CHANGED");
+            assertThat(conflictBody).contains("\"reason\":\"DATA_CHANGED\"")
+                    .contains("Record changed by some one else. Please review");
         } finally {
             executor.shutdownNow();
         }
@@ -402,6 +403,40 @@ class ApplicationIntegrationTest {
                 new org.springframework.http.HttpEntity<>(body, session.headers()), String.class);
         assertThat(response.getStatusCode().value()).isEqualTo(400);
         assertThat(response.getBody()).contains("VR-094");
+    }
+
+    /**
+     * Modernization rule VR-REF-002: a type/category combination that is numerically valid
+     * (VR-086/VR-076) but does not exist in transaction_categories (e.g. type 02 category 5)
+     * must be rejected cleanly as 400 VALIDATION_FAILED, not surface as a 500 from the
+     * transactions_category_fkey FK violation added in V2__transaction_reference_fks.sql.
+     */
+    @Test
+    void addTransaction_unknownTypeCategoryCombinationIsRejectedCleanly() {
+        Session session = login(REGULAR_ID);
+        String body = "{\"accountId\":" + ACCT_ID + ",\"typeCd\":\"02\",\"catCd\":5,\"source\":\"POS TERM\","
+                + "\"description\":\"PURCHASE\",\"amount\":12.34,\"origDate\":\"2022-06-10\","
+                + "\"procDate\":\"2022-06-10\",\"merchantId\":999999999,\"merchantName\":\"ACME\","
+                + "\"merchantCity\":\"RALEIGH\",\"merchantZip\":\"27601\",\"confirm\":\"Y\"}";
+        var response = restTemplate.postForEntity(baseUrl() + "/api/transactions",
+                new org.springframework.http.HttpEntity<>(body, session.headers()), String.class);
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).contains("VR-REF-002").contains("tranCatCd");
+    }
+
+    /** Modernization rule VR-REF-001: an unknown transaction type code (e.g. "99") is rejected
+     * cleanly as 400 VALIDATION_FAILED rather than the transactions_type_fkey FK violation. */
+    @Test
+    void addTransaction_unknownTypeCodeIsRejectedCleanly() {
+        Session session = login(REGULAR_ID);
+        String body = "{\"accountId\":" + ACCT_ID + ",\"typeCd\":\"99\",\"catCd\":2,\"source\":\"POS TERM\","
+                + "\"description\":\"PURCHASE\",\"amount\":12.34,\"origDate\":\"2022-06-10\","
+                + "\"procDate\":\"2022-06-10\",\"merchantId\":999999999,\"merchantName\":\"ACME\","
+                + "\"merchantCity\":\"RALEIGH\",\"merchantZip\":\"27601\",\"confirm\":\"Y\"}";
+        var response = restTemplate.postForEntity(baseUrl() + "/api/transactions",
+                new org.springframework.http.HttpEntity<>(body, session.headers()), String.class);
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).contains("VR-REF-001").contains("tranTypeCd");
     }
 
     @Test

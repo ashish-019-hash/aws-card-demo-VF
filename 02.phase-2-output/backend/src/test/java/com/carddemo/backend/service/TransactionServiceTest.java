@@ -5,11 +5,14 @@ import com.carddemo.backend.dto.TransactionAddResponse;
 import com.carddemo.backend.entity.CardXref;
 import com.carddemo.backend.entity.TranIdAllocator;
 import com.carddemo.backend.entity.Transaction;
+import com.carddemo.backend.entity.TransactionCategoryId;
 import com.carddemo.backend.exception.NotFoundException;
 import com.carddemo.backend.exception.ValidationFailedException;
 import com.carddemo.backend.repository.CardXrefRepository;
 import com.carddemo.backend.repository.TranIdAllocatorRepository;
+import com.carddemo.backend.repository.TransactionCategoryRepository;
 import com.carddemo.backend.repository.TransactionRepository;
+import com.carddemo.backend.repository.TransactionTypeRepository;
 import com.carddemo.backend.validation.TransactionValidationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +27,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,13 +43,22 @@ class TransactionServiceTest {
     private TranIdAllocatorRepository tranIdAllocatorRepository;
     @Mock
     private TransactionValidationService transactionValidationService;
+    @Mock
+    private TransactionTypeRepository transactionTypeRepository;
+    @Mock
+    private TransactionCategoryRepository transactionCategoryRepository;
 
     private TransactionService service;
 
     @BeforeEach
     void setUp() {
         service = new TransactionService(transactionRepository, cardXrefRepository, tranIdAllocatorRepository,
-                transactionValidationService);
+                transactionValidationService, transactionTypeRepository, transactionCategoryRepository);
+        // Default: the type/category used by validRequest()/validRequestNoAccountOrCard() ("02"/2)
+        // exists, so most tests don't need to care about the VR-REF-001/002 check.
+        lenient().when(transactionTypeRepository.existsById("02")).thenReturn(true);
+        lenient().when(transactionCategoryRepository.existsById(new TransactionCategoryId("02", 2)))
+                .thenReturn(true);
     }
 
     @Test
@@ -169,6 +182,43 @@ class TransactionServiceTest {
         assertThatThrownBy(() -> service.addTransaction(req))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("Card Number NOT found");
+    }
+
+    /** Modernization rule VR-REF-001: an unknown transaction type code is rejected cleanly
+     * (400 VALIDATION_FAILED) instead of surfacing as a 500 FK violation at flush time. */
+    @Test
+    void addTransactionRejectsWhenTypeCodeDoesNotExist() {
+        TransactionAddRequest req = validRequest(1L, "Y");
+        when(transactionTypeRepository.existsById("02")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.addTransaction(req))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(fe -> {
+                            assertThat(fe.field()).isEqualTo("tranTypeCd");
+                            assertThat(fe.rule()).isEqualTo("VR-REF-001");
+                            assertThat(fe.message()).contains("Transaction Type Code not found");
+                        }));
+        verify(transactionRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    /** Modernization rule VR-REF-002: a type/category combination with no matching
+     * TRANCATG row (e.g. type 02 category 5) is rejected cleanly instead of surfacing as a
+     * 500 FK violation at flush time. */
+    @Test
+    void addTransactionRejectsWhenCategoryDoesNotExistForType() {
+        TransactionAddRequest req = validRequest(1L, "Y");
+        when(transactionCategoryRepository.existsById(new TransactionCategoryId("02", 2))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.addTransaction(req))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(fe -> {
+                            assertThat(fe.field()).isEqualTo("tranCatCd");
+                            assertThat(fe.rule()).isEqualTo("VR-REF-002");
+                            assertThat(fe.message()).contains("Transaction Category Code not found");
+                        }));
+        verify(transactionRepository, org.mockito.Mockito.never()).save(any());
     }
 
     private TransactionAddRequest validRequest(Long accountId, String confirm) {
