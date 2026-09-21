@@ -34,9 +34,9 @@ Full per-rule catalog: `01.phase-1-output/validation-rules.md`. Implementing cla
 
 | Screen / area | Rule range | Validator | Unit tests |
 |---|---|---|---|
-| Account update (COACTUPC) | VR-015, VR-021-030c (incl. new max-length checks and VR-025b/VR-030a — no matching legacy rule id existed for Address Line 2 / Government Issued Id length, both were previously unvalidated), VR-035-039 (SSN split into 3 independently-validated groups), VR-040-053 | `AccountValidationService` | `AccountValidationServiceTest` |
+| Account update (COACTUPC) | VR-015, VR-021-030c (incl. new max-length checks and VR-025b/VR-030a/VR-WIDTH-001 — no matching legacy rule id existed for Address Line 2 / Government Issued Id / Account Group Id length, all were previously unvalidated), VR-035-039 (SSN split into 3 independently-validated groups), VR-040-053 | `AccountValidationService` | `AccountValidationServiceTest` |
 | Card update (COCRDUPC) | VR-064-069 (incl. embossed-name max length) | `CardValidationService` | `CardValidationServiceTest` |
-| Transaction add (COTRN02C) | VR-075-093 (incl. new max-length checks on type/source/description/merchant fields; VR-072/073/074/094 handled in `TransactionService`) | `TransactionValidationService` | `TransactionValidationServiceTest`, `TransactionServiceTest` |
+| Transaction add (COTRN02C) | VR-075-093 (incl. new max-length checks on type/source/description/merchant fields and the PIC 9(09) range 0..999999999 for Merchant ID under VR-093; VR-072/073/074/094 handled in `TransactionService`) | `TransactionValidationService` | `TransactionValidationServiceTest`, `TransactionServiceTest` |
 | User add/update (COUSR01C/02C) | VR-116-120 (create, incl. max-length), VR-123-126 (update, incl. max-length) | `UserValidationService` | `UserValidationServiceTest` |
 | Shared primitives (mandatory/alpha/numeric/date/Y-N) | used across all of the above | `CommonValidators` | `CommonValidatorsTest` |
 | Sign-on mandatory fields | VR-001/VR-002 | not implemented as distinct rules — see README "Known gaps" | — |

@@ -99,4 +99,28 @@ class TransactionValidationServiceTest {
                     assertThat(rules).contains("VR-082", "VR-083", "VR-084", "VR-085");
                 });
     }
+
+    @Test
+    void rejectsMerchantIdWiderThanNineDigits() {
+        TransactionAddRequest r = valid();
+        TransactionAddRequest bad = new TransactionAddRequest(r.accountId(), r.cardNum(), r.typeCd(), r.catCd(),
+                r.source(), r.description(), r.amount(), r.origDate(), r.procDate(), 1_000_000_000L,
+                r.merchantName(), r.merchantCity(), r.merchantZip(), r.confirm());
+        assertThatThrownBy(() -> service.validate(bad))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-093")));
+    }
+
+    @Test
+    void rejectsNegativeMerchantId() {
+        TransactionAddRequest r = valid();
+        TransactionAddRequest bad = new TransactionAddRequest(r.accountId(), r.cardNum(), r.typeCd(), r.catCd(),
+                r.source(), r.description(), r.amount(), r.origDate(), r.procDate(), -1L,
+                r.merchantName(), r.merchantCity(), r.merchantZip(), r.confirm());
+        assertThatThrownBy(() -> service.validate(bad))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(err -> assertThat(err.rule()).isEqualTo("VR-093")));
+    }
 }

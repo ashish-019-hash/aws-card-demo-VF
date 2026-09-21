@@ -46,6 +46,9 @@ public class TransactionValidationService {
 
         if (r.merchantId() == null) {
             errors.add(new FieldError("merchantId", "VR-082", "Merchant ID can NOT be empty..."));
+        } else if (r.merchantId() < 0 || r.merchantId() > 999_999_999L) {
+            // TRAN-MERCHANT-ID is PIC 9(09) (CVTRA05Y): unsigned, at most nine digits (VR-093 numeric check).
+            errors.add(new FieldError("merchantId", "VR-093", "Merchant ID must be Numeric..."));
         }
         CommonValidators.mandatory(errors, "merchantName", "Merchant Name", "VR-083", r.merchantName());
         CommonValidators.maxLength(errors, "merchantName", "Merchant Name", "VR-083", r.merchantName(), 50);

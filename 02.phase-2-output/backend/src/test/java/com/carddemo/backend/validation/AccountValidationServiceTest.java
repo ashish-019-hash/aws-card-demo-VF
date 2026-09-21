@@ -239,4 +239,19 @@ class AccountValidationServiceTest {
                 b.addrStateCd(), b.addrCountryCd(), b.addrZip(), b.phoneNum1(), b.phoneNum2(), ssn,
                 b.govtIssuedId(), b.dob(), b.eftAccountId(), b.priCardHolderInd(), b.ficoCreditScore());
     }
+
+    @Test
+    void rejectsGroupIdWiderThanLegacyField() {
+        AccountFields base = validFields();
+        AccountFields f = new AccountFields(base.activeStatus(), base.creditLimit(), base.cashCreditLimit(),
+                base.currBal(), base.currCycCredit(), base.currCycDebit(), base.openDate(), base.expirationDate(),
+                base.reissueDate(), "GRP01234567", base.firstName(), base.middleName(), base.lastName(),
+                base.addrLine1(), base.addrLine2(), base.addrLine3(), base.addrStateCd(), base.addrCountryCd(),
+                base.addrZip(), base.phoneNum1(), base.phoneNum2(), base.ssn(), base.govtIssuedId(), base.dob(),
+                base.eftAccountId(), base.priCardHolderInd(), base.ficoCreditScore());
+        assertThatThrownBy(() -> service.validate(f))
+                .isInstanceOf(ValidationFailedException.class)
+                .satisfies(e -> assertThat(((ValidationFailedException) e).getErrors())
+                        .anySatisfy(err -> assertThat(err.field()).isEqualTo("groupId")));
+    }
 }

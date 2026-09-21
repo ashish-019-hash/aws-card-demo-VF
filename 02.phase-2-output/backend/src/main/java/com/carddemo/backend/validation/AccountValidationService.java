@@ -80,6 +80,8 @@ public class AccountValidationService {
         CommonValidators.numericRequired(errors, "eftAccountId", "EFT Account Id", "VR-030b", f.eftAccountId());
         CommonValidators.maxLength(errors, "eftAccountId", "EFT Account Id", "VR-030b", f.eftAccountId(), 10);
         CommonValidators.maxLength(errors, "govtIssuedId", "Government Issued Id", "VR-030a", f.govtIssuedId(), 20);
+        // ACCT-GROUP-ID is PIC X(10) (CVACT01Y); legacy has no edit for it beyond the field width.
+        CommonValidators.maxLength(errors, "groupId", "Account Group Id", "VR-WIDTH-001", f.groupId(), 10);
         CommonValidators.yesNo(errors, "priCardHolderInd", "Primary Card Holder", "VR-030c", f.priCardHolderInd());
 
         CommonValidators.dateCcyymmdd(errors, "openDate", "Open Date", "VR-030", f.openDate());
