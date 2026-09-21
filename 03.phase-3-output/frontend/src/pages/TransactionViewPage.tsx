@@ -1,0 +1,93 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { endpoints } from '../api/endpoints'
+import { ApiError } from '../api/client'
+import type { TransactionDetail } from '../api/types'
+import { ScreenHeader } from '../components/ScreenHeader'
+import { MessageBar } from '../components/MessageBar'
+import { FieldError } from '../components/FieldError'
+import { BackLink } from '../components/BackLink'
+import { required } from '../validation/rules'
+
+export function TransactionViewPage() {
+  const [searchParams] = useSearchParams()
+  const [tranId, setTranId] = useState(searchParams.get('tranId') ?? '')
+  const [tran, setTran] = useState<TransactionDetail | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [fieldError, setFieldError] = useState<string | undefined>()
+
+  async function lookup(id: string) {
+    try {
+      const detail = await endpoints.getTransaction(id)
+      setTran(detail)
+      setMessage(null)
+    } catch (e) {
+      setTran(null)
+      setMessage(e instanceof ApiError ? e.message : 'Unable to look up transaction.')
+    }
+  }
+
+  useEffect(() => {
+    const initial = searchParams.get('tranId')
+    if (initial) void lookup(initial)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    // VR-071
+    const err = required(tranId, 'Tran ID can NOT be empty...')
+    setFieldError(err)
+    if (err) return
+    void lookup(tranId.trim())
+  }
+
+  return (
+    <div className="screen">
+      <ScreenHeader screenId="COTRN01C" title="View Transaction" />
+      <MessageBar kind="error" message={message} />
+      <form onSubmit={handleSubmit} className="form">
+        <div className="form-row">
+          <label htmlFor="tranId">Transaction ID</label>
+          <input id="tranId" value={tranId} onChange={(e) => setTranId(e.target.value)} />
+          <FieldError message={fieldError} />
+        </div>
+        <div className="form-actions">
+          <button type="submit">Enter</button>
+        </div>
+      </form>
+
+      {tran && (
+        <dl className="detail-grid" data-testid="transaction-detail">
+          <dt>Transaction ID</dt>
+          <dd>{tran.tranId}</dd>
+          <dt>Card Number</dt>
+          <dd>{tran.cardNum}</dd>
+          <dt>Type</dt>
+          <dd>{tran.typeCd}</dd>
+          <dt>Category</dt>
+          <dd>{tran.catCd}</dd>
+          <dt>Source</dt>
+          <dd>{tran.source}</dd>
+          <dt>Description</dt>
+          <dd>{tran.description}</dd>
+          <dt>Amount</dt>
+          <dd>{tran.amount}</dd>
+          <dt>Original Date</dt>
+          <dd>{tran.origTs}</dd>
+          <dt>Processing Date</dt>
+          <dd>{tran.procTs}</dd>
+          <dt>Merchant ID</dt>
+          <dd>{tran.merchantId}</dd>
+          <dt>Merchant Name</dt>
+          <dd>{tran.merchantName}</dd>
+          <dt>Merchant City</dt>
+          <dd>{tran.merchantCity}</dd>
+          <dt>Merchant Zip</dt>
+          <dd>{tran.merchantZip}</dd>
+        </dl>
+      )}
+      <BackLink to="/menu" />
+    </div>
+  )
+}
