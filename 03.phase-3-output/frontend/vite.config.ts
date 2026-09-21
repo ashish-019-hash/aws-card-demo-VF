@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -33,5 +34,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    // The e2e/ directory contains Playwright specs (run via `npm run test:e2e`), not
+    // Vitest specs. Exclude it so `npx vitest run` doesn't try to load them.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 })

@@ -100,6 +100,62 @@ tunnel: sign-on (regular + admin), main/admin menu, account view, credit card
 list (unfiltered + account-filtered, pagination), bill payment (balance
 lookup), and the admin-only user list — all confirmed working end-to-end.
 
+## End-to-end tests (Playwright)
+
+`frontend/e2e/` contains a Playwright suite that drives the real Vite dev
+server against the real Spring Boot backend (no mocked API responses, except
+the one deliberately-mocked network-failure scenario in
+`network-failure.spec.ts` that simulates a dropped connection). It is separate
+from the Vitest unit/component suite above.
+
+```bash
+cd 03.phase-3-output/frontend
+npx playwright install --with-deps chromium   # first time only
+npx playwright test                            # starts its own dev server (see webServer in playwright.config.ts)
+```
+
+The backend must already be running and seeded (see
+`02.phase-2-output/backend/README.md`) before running the suite;
+`playwright.config.ts`'s `webServer` starts/stops the frontend dev server for
+you but does not touch the backend.
+
+- **Coverage**: `e2e/tests/*.spec.ts`, one file per screen/flow area (account,
+  card, transaction, bill payment, report, user admin, menu, sign-on, and a
+  network-failure/resilience file). `e2e/TRACEABILITY.md` maps every user
+  story, business rule, and validation rule id from the phase-1 catalogs to
+  the specific test that exercises it (or documents why it's out of scope for
+  a black-box browser test).
+- **Fixtures/data**: `e2e/fixtures/` (sign-on helpers, an `xsrfHeaders(page)`
+  helper for test-side API mutations — see below) and `e2e/data/constants.ts`
+  (seed IDs used by the suite).
+- **Mutating tests** restore the data they change and are safe to re-run;
+  the suite runs with a single worker (serial) since several tests share
+  seed rows (accounts/cards) with other tests.
+- **XSRF header on test-side API calls**: `page.request.*` shares the browser
+  context's session cookies but, unlike the app's own `src/api/client.ts`
+  fetch wrapper, does not automatically echo the `XSRF-TOKEN` cookie as an
+  `X-XSRF-TOKEN` header. Any test that calls `page.request.put/post/delete`
+  directly (e.g. to simulate a concurrent edit by "another user") must pass
+  `headers: await xsrfHeaders(page)`, or the backend's CSRF filter silently
+  403s the call.
+- **Known defects found by this suite**: see `e2e/DEFECTS.md` for full
+  writeups. Each is captured as a `test.fail()` so the suite stays green while
+  still pinning down the exact expected-vs-actual behavior:
+  - **DEFECT-001**: the account/card "changed by another user" conflict
+    message text doesn't match the legacy wording (STORY-018, STORY-026).
+  - **DEFECT-002**: the transaction report confirm-value error message text
+    doesn't match the legacy wording (VR-113, VR-114).
+  - **DEFECT-003**: an invalid (non-blank) Account Status value shows the same
+    message as a blank Account Status value, because `yesNo()` in
+    `src/validation/rules.ts` doesn't distinguish the two cases (VR-010/VR-015;
+    also affects the Primary Card Holder Indicator field via the same
+    validator).
+  - **DEFECT-004**: a 401 response received mid-session correctly redirects
+    to Sign On, but loses its "session expired" message — a race between
+    `AuthContext`'s `onUnauthorized` navigate (which carries the message in
+    `location.state`) and `RequireAuth`'s own state-less re-render `<Navigate>`,
+    which fires second and wins.
+
 ## Backend deviations / known gaps (informational, not bugs in this frontend)
 
 - **Account ID format**: the legacy BMS maps fix the account number field at
