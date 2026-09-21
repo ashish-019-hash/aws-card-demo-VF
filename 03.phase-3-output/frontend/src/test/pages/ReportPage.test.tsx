@@ -134,6 +134,27 @@ describe('ReportPage (CORPT00C)', () => {
     expect(screen.getByRole('button', { name: 'Enter (validate)' })).toBeInTheDocument()
   })
 
+  it('clears a stale "Please confirm..." field error once the report submits successfully', async () => {
+    server.use(
+      http.post('/api/reports', () =>
+        HttpResponse.json({ message: 'Report job submitted.', periodStart: '2024-01-01', periodEnd: '2024-01-31' }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(screen.getByRole('radio', { name: 'Monthly' }))
+    await user.click(screen.getByRole('button', { name: 'Enter (validate)' }))
+    // Trigger the blank-confirm field error first (VR-113), leaving errors.confirm set...
+    await user.click(await screen.findByRole('button', { name: 'Enter (confirm)' }))
+    expect(await screen.findByText('Please confirm to print the MONTHLY report...')).toBeInTheDocument()
+    // ...then fill Confirm=Y and submit successfully; the stale error must not linger
+    // alongside the success message.
+    await user.type(screen.getByLabelText('Confirm (Y/N)'), 'Y')
+    await user.click(screen.getByRole('button', { name: 'Enter (confirm)' }))
+    expect(await screen.findByText('Report job submitted.')).toBeInTheDocument()
+    expect(screen.queryByText('Please confirm to print the MONTHLY report...')).not.toBeInTheDocument()
+  })
+
   it('shows backend 400 field errors mapped onto the form when the submit fails', async () => {
     server.use(
       http.post('/api/reports', () =>

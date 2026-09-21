@@ -128,6 +128,19 @@ class AccountValidationServiceTest {
         service.validate(f); // must not throw
     }
 
+    /**
+     * The persisted column is a fixed-width {@code PIC X(15)} and legacy/seed data commonly
+     * stores the 13-character "(NNN)NNN-NNNN" value right-padded with trailing spaces to fill
+     * it (confirmed via GET /api/accounts/{id} against seeded data, e.g. "(614)594-2619  ").
+     * Re-submitting an account's own unchanged, already-persisted phone number must not fail
+     * this check just because of that padding.
+     */
+    @Test
+    void allowsTrailingSpacePaddedPhone() {
+        AccountFields f = withPhone(validFields(), "(212)555-1234  ");
+        service.validate(f); // must not throw
+    }
+
     @Test
     void rejectsBadSsnPrefix() {
         AccountFields base = validFields();

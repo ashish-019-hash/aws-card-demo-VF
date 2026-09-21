@@ -91,6 +91,7 @@ export function ReportPage() {
       })
       setValidated(false)
       setConfirm('')
+      setErrors({})
     } catch (e2) {
       if (e2 instanceof ApiError && e2.status === 400) {
         const { fieldErrors, unmapped } = e2.fieldErrors(KNOWN_REPORT_FIELDS)

@@ -123,6 +123,23 @@ describe('AccountUpdatePage (COACTUPC)', () => {
     expect(screen.queryByTestId('confirm-actions')).not.toBeInTheDocument()
   })
 
+  it('validates an unchanged ZIP+4 value ("NNNNN-NNNN") fetched from the account without a client-side error (mirrors the backend, which only checks the 5-digit prefix)', async () => {
+    server.use(
+      http.get('/api/accounts/:id', () =>
+        HttpResponse.json({ ...baseAccount, fields: { ...baseFields, addrZip: '02251-1698' } }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await user.type(screen.getByLabelText('Account ID'), '00000000010')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    await screen.findByTestId('account-update-form')
+    expect(screen.getByLabelText('Zip')).toHaveValue('02251-1698')
+    await user.click(screen.getByRole('button', { name: 'Enter (validate)' }))
+    expect(await screen.findByText('No change detected with respect to values fetched.')).toBeInTheDocument()
+    expect(screen.queryByText('Zip must be a 5 digit number.')).not.toBeInTheDocument()
+  })
+
   it('validates a real change and proceeds to the confirm/save step', async () => {
     const user = userEvent.setup()
     await goToEdit(user)

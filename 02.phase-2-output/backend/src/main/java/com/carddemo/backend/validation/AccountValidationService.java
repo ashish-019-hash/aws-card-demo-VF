@@ -100,12 +100,16 @@ public class AccountValidationService {
         }
     }
 
-    /** VR-043..VR-047 (1260-EDIT-US-PHONE-NUM), applied once per phone field. */
+    /** VR-043..VR-047 (1260-EDIT-US-PHONE-NUM), applied once per phone field. The persisted
+     * column is a fixed-width `PIC X(15)` and legacy/seed data commonly stores the
+     * 13-character "(NNN)NNN-NNNN" value right-padded with trailing spaces to fill it, so
+     * this trims before matching — otherwise re-submitting an account's own unchanged,
+     * already-persisted phone number (as returned by GET) would fail this check. */
     private void validatePhone(List<FieldError> errors, String field, String label, String value) {
         if (value == null || value.isBlank()) {
             return; // VR-043: blank phone is valid
         }
-        var m = PHONE.matcher(value);
+        var m = PHONE.matcher(value.trim());
         if (!m.matches()) {
             errors.add(new FieldError(field, "VR-045", label + ": Area code must be A 3 digit number."));
             return;
