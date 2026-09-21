@@ -1,0 +1,107 @@
+# API Contract
+
+Full request/response DTOs are authoritative in Swagger UI (`/swagger-ui.html`) and the
+generated OpenAPI document (`/v3/api-docs`) once the app is running — this document covers
+the cross-cutting conventions that apply to every endpoint.
+
+## Base URL
+
+`http://localhost:8080` (dev). All endpoints are under `/api`.
+
+## Authentication & session
+
+`POST /api/session` — body `{"userId": "...", "password": "..."}`.
+
+- Success: `200` with `SessionResponse` (`{"authenticated":true,"userId":...,"firstName":...,"lastName":...,"userType":"A"|"U"}`),
+  sets `JSESSIONID` (HttpOnly) and `XSRF-TOKEN` cookies.
+- Bad credentials / unknown user: `401` (see error envelope below).
+
+`GET /api/session` — current session status (`authenticated:false` and null fields if
+anonymous). `DELETE /api/session` — signs off (invalidates the session), `204`-style empty
+body.
+
+### CSRF
+
+Every mutating request (`POST`/`PUT`/`DELETE`) other than `POST /api/session` itself must
+echo the `XSRF-TOKEN` cookie value in an `X-XSRF-TOKEN` request header, or the request is
+rejected with `403` before it reaches the controller.
+
+### Authorization
+
+`/api/users/**` requires `ROLE_ADMIN` (i.e. the signed-in user's `userType == "A"`). All
+other endpoints only require an authenticated session (no per-resource ownership check —
+see README "Known gaps", BR-005).
+
+## Error envelope
+
+All error responses share this shape:
+
+```json
+{
+  "code": "VALIDATION_FAILED | NOT_FOUND | CONFLICT | UNAUTHORIZED | FORBIDDEN",
+  "message": "human-readable summary",
+  "errors": [ { "field": "...", "rule": "VR-###", "message": "..." } ],
+  "reason": "DATA_CHANGED | UPDATE_FAILED"
+}
+```
+
+`errors` is present only for `VALIDATION_FAILED` (400). `reason` is present only for some
+`CONFLICT` (409) responses — see the table below. Status code mapping:
+
+| `code` | HTTP status | Thrown by |
+|---|---|---|
+| `VALIDATION_FAILED` | 400 | `ValidationFailedException` (validators in `com.carddemo.backend.validation`) |
+| `UNAUTHORIZED` | 401 | `BadCredentialsException` (bad sign-on), or `RevalidationFilter` rejecting an established session whose user no longer exists/is otherwise invalid on a later request |
+| `FORBIDDEN` | 403 | `AccessDeniedException` (non-admin hitting `/api/users/**`) |
+| `NOT_FOUND` | 404 | `NotFoundException` (unknown account/card/transaction/user id) |
+| `CONFLICT` | 409 | `ConflictException`. For account/card update conflicts the envelope carries a `reason` of `"DATA_CHANGED"` (stale optimistic-lock snapshot, message is the exact legacy text `"Record changed by some one else. Please review"`, COACTUPC/COCRDUPC) or `"UPDATE_FAILED"` (downstream write failure, message `"Update of record failed"`, same legacy literal). Duplicate-user-id and transaction-id-allocator conflicts are also `CONFLICT` but carry no `reason` field (they have no legacy DATA_CHANGED/UPDATE_FAILED distinction). Any other `DataIntegrityViolationException` (FK/unique-constraint violation) that reaches the controller without a prior service-level check is also mapped to `CONFLICT` with a generic, non-technical message — a safety net so no such violation ever surfaces as a raw 500. |
+
+## Optimistic concurrency (accounts, cards)
+
+`PUT /api/accounts/{id}` and `PUT /api/cards/{cardNumber}` both take
+`{"expected": <fields-as-last-read>, "updated": <fields-to-save>}`:
+
+- `updated` field-for-field equal to `expected` → `200 {"changed": false, ...}`, nothing
+  written (BR-006).
+- Live record no longer matches `expected` → `409 CONFLICT` with `"reason":"DATA_CHANGED"`
+  and message `"Record changed by some one else. Please review"` (exact legacy text,
+  STORY-018/STORY-026); client must re-`GET` for a fresh snapshot before retrying.
+- Live record matches `expected` but the write itself fails → `409 CONFLICT` with
+  `"reason":"UPDATE_FAILED"` and message `"Update of record failed"` (same legacy literal).
+- Live record matches `expected` → applies `updated`, saves, returns `200 {"changed": true, ...}`.
+
+
+## Confirm-gated actions (transactions, bill payments, reports)
+
+`POST /api/transactions`, `POST /api/bill-payments`, `POST /api/reports` all require a
+`confirm` field equal to `"Y"` (case-insensitive) to actually commit; `"N"` or blank returns
+a `200` with an explanatory `message` and no write, and any other value is a
+`VALIDATION_FAILED`/error response — mirroring the legacy screens' Y/N confirmation gates.
+
+### Add transaction (`POST /api/transactions`) card/account resolution
+
+If both `accountId` and `cardNum` are supplied, `accountId` wins: its cross-reference lookup
+is used and `cardNum` is never checked (COTRN02C.cbl `VALIDATE-INPUT-KEY-FIELDS` evaluates the
+account id first). An unknown `accountId` is `404` `"Account ID NOT found..."`; a `cardNum`
+supplied with no matching cross-reference (and no `accountId`) is a distinct `404`
+`"Card Number NOT found..."`. The persisted `origTs`/`procTs` are the caller's own
+`origDate`/`procDate`, left-justified and space-padded to the legacy 26-char timestamp width —
+never server time.
+
+**`typeCd`/`catCd` referential-integrity check (VR-REF-001/VR-REF-002 — modernization rules,
+not in the legacy VR-\* catalog):** COTRN02C.cbl only checks that `typeCd`/`catCd` are numeric
+(VR-086/VR-076); it never verifies the pair actually exists in `TRANTYPE`/`TRANCATG` before
+writing. This backend enforces the `transactions_type_fkey`/`transactions_category_fkey`
+constraints added by `V2__transaction_reference_fks.sql`, so an unknown `typeCd` (e.g. `"99"`)
+or a numerically-valid but non-existent `typeCd`/`catCd` combination (e.g. type `"02"`
+category `5`) is rejected as `400 VALIDATION_FAILED` — field `tranTypeCd`/rule `VR-REF-001`
+(`"Transaction Type Code not found..."`) or field `tranCatCd`/rule `VR-REF-002`
+(`"Transaction Category Code not found for this Type..."`) — instead of surfacing as a `500`
+from the FK violation at flush time.
+
+## Pagination
+
+List endpoints (`GET /api/cards`, `GET /api/transactions`, `GET /api/users`) take a
+zero-based `page` query parameter and return `hasNext`/`hasPrevious` (or an equivalent
+boolean pair) alongside the page of items, using the legacy page sizes: cards 7,
+transactions 10, users 10 (BR-015).

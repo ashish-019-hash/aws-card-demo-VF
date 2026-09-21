@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+carddemo:
+  seed:
+    enabled: false
+  security:
+    csrf-cookie-secure: false
+  cors:
+    allowed-origins: http://localhost:5173
