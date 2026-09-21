@@ -170,3 +170,10 @@ backend intentionally enforces something the legacy COBOL did not:
   check (an unanticipated case) is mapped by `GlobalExceptionHandler` to `409 CONFLICT` with a
   non-technical message, so no such violation can ever surface to a caller as a raw `500`.
 
+
+## Behavioral equivalence
+
+`docs/behavioral-equivalence.md` places each non-trivial COBOL calculation or decision
+(transaction id allocation, bill payment record contents and balance update, report period
+derivation, optimistic-concurrency messages, sign-on routing) side by side with the Java
+implementation and states how the equivalence was verified (unit, integration, E2E, manual).
