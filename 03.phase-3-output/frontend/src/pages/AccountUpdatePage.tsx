@@ -17,6 +17,7 @@ import {
   hasErrors,
   isBlank,
   nonZeroDigits,
+  zipCode,
   required,
   signedAmount,
   ssnAreaValid,
@@ -89,7 +90,7 @@ function validateAccountFields(f: AccountFields): FieldErrors {
   errors.addrLine3 = alphaRequired(f.addrLine3, 'City must be supplied.')
   errors.addrCountryCd = alphaRequired(f.addrCountryCd, 'Country must be supplied.')
   errors.addrStateCd = alphaRequired(f.addrStateCd, 'State must be supplied.') ?? stateCode(f.addrStateCd, 'State: is not a valid state code')
-  errors.addrZip = nonZeroDigits(f.addrZip ?? '', 5, 'Zip must be a 5 digit number.')
+  errors.addrZip = zipCode(f.addrZip, 'Zip must be a 5 digit number.')
   if (!isBlank(f.ssn)) {
     const ssn = (f.ssn ?? '').replace(/\D/g, '')
     if (ssn.length !== 9) {

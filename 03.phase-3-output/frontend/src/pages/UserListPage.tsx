@@ -57,8 +57,8 @@ export function UserListPage() {
               <td>{u.lastName}</td>
               <td>{u.userType}</td>
               <td>
-                <Link to={`/users/update?userId=${u.userId}`}>U = Update</Link>{' '}
-                <Link to={`/users/delete?userId=${u.userId}`}>D = Delete</Link>
+                <Link to={`/users/update?userId=${u.userId}`} state={{ from: '/users' }}>U = Update</Link>{' '}
+                <Link to={`/users/delete?userId=${u.userId}`} state={{ from: '/users' }}>D = Delete</Link>
               </td>
             </tr>
           ))}

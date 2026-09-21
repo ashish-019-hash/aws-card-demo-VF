@@ -90,7 +90,7 @@ dead-menu-option behavior (BR-003).
 ## Testing
 
 `npx vitest run` — Vitest + Testing Library + MSW (mocked backend responses).
-29 test files, 256 tests, covering: validation rules, the API client (CSRF header,
+29 test files, 261 tests, covering: validation rules, the API client (CSRF header,
 `ApiError` parsing, 401 handling), sign-on, admin gating, every page's rendering,
 field/cross-field validation, navigation decisions and mocked API boundaries, and
 the trickier multi-step flows (card update's search→edit→confirm→save with a

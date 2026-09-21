@@ -21,9 +21,18 @@ export function CardViewPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [errors, setErrors] = useState<{ acctFilter?: string; cardFilter?: string; both?: string }>({})
 
-  async function lookupByCardNumber(cardNum: string) {
+  // STORY-023 (COCRDSLC 9000-READ-DATA): when both filters are supplied the card is read
+  // by card number and then its account id must match the entered account; otherwise the
+  // legacy screen reports "Did not find cards for this search condition".
+  async function lookupByCardNumber(cardNum: string, acctId?: string) {
     try {
       const detail = await endpoints.getCard(cardNum)
+      if (acctId !== undefined && detail.acctId !== Number(acctId)) {
+        setCard(null)
+        setMatches(null)
+        setMessage('Did not find cards for this search condition')
+        return
+      }
       setCard(detail)
       setMatches(null)
       setMessage(null)
@@ -39,19 +48,29 @@ export function CardViewPage() {
   // number. If the account has exactly one card, show its full detail grid (following up
   // with a card-number lookup for the fields `listCards` doesn't return, e.g. cvv/expiry);
   // if it has more than one, list the matches so the user can pick one to view.
+  // The list endpoint pages 7 cards at a time (COCRDLIC page size); follow hasNext so an
+  // account with more than one page of cards shows every match, not just the first page.
   async function lookupByAccount(acctId: string) {
     try {
-      const response = await endpoints.listCards({ acctId })
-      if (response.items.length === 0) {
+      const items: CardSummary[] = []
+      let page = 0
+      let hasNext = true
+      while (hasNext) {
+        const response = await endpoints.listCards({ acctId, page })
+        items.push(...response.items)
+        hasNext = response.hasNext && response.items.length > 0
+        page += 1
+      }
+      if (items.length === 0) {
         setCard(null)
         setMatches(null)
         setMessage('Did not find cards for this search condition')
-      } else if (response.items.length === 1) {
+      } else if (items.length === 1) {
         setMatches(null)
-        await lookupByCardNumber(response.items[0].cardNum)
+        await lookupByCardNumber(items[0].cardNum)
       } else {
         setCard(null)
-        setMatches(response.items)
+        setMatches(items)
         setMessage(null)
       }
     } catch (e) {
@@ -79,7 +98,7 @@ export function CardViewPage() {
     setErrors(nextErrors)
     if (nextErrors.acctFilter || nextErrors.cardFilter || nextErrors.both) return
     if (!isBlank(cardFilter)) {
-      void lookupByCardNumber(cardFilter.trim())
+      void lookupByCardNumber(cardFilter.trim(), isBlank(acctFilter) ? undefined : acctFilter.trim())
     } else {
       void lookupByAccount(acctFilter.trim())
     }

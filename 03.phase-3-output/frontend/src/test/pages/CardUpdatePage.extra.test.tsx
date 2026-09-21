@@ -163,4 +163,36 @@ describe('CardUpdatePage (COCRDUPC) - additional coverage', () => {
     expect(await screen.findByText('Card name can only contain alphabets and spaces')).toBeInTheDocument()
     expect(await screen.findByText('Validation failed.')).toBeInTheDocument()
   })
+
+  it('maps a backend expirationDate error onto the expiry-month control and surfaces a cvvCd error in the summary', async () => {
+    server.use(
+      http.get('/api/cards/:cardNum', () => HttpResponse.json(baseCard)),
+      http.put('/api/cards/:cardNum', () =>
+        HttpResponse.json(
+          {
+            code: 'VALIDATION_FAILED',
+            message: 'Validation failed.',
+            errors: [
+              { field: 'expirationDate', message: 'Card expiry month must be between 1 and 12' },
+              { field: 'cvvCd', message: 'CVV must be 3 digits' },
+            ],
+          },
+          { status: 400 },
+        ),
+      ),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await user.type(screen.getByLabelText('Card Number'), baseCard.cardNum)
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    const nameInput = await screen.findByLabelText('Cardholder Name on Card')
+    await user.clear(nameInput)
+    await user.type(nameInput, 'JANE Q PUBLIC')
+    await user.click(screen.getByRole('button', { name: 'Enter (validate)' }))
+    const confirmActions = await screen.findByTestId('confirm-actions')
+    await user.click(within(confirmActions).getByRole('button', { name: 'F5 = Save' }))
+    expect(await screen.findByText('Card expiry month must be between 1 and 12')).toBeInTheDocument()
+    expect(screen.getByLabelText('Expiry Month (1-12)')).toHaveAttribute('aria-invalid', 'true')
+    expect(await screen.findByText(/CVV must be 3 digits/)).toBeInTheDocument()
+  })
 })

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { endpoints } from '../api/endpoints'
 import { ApiError } from '../api/client'
 import type { UserResponse } from '../api/types'
@@ -15,6 +15,10 @@ const FIELD_ORDER = ['firstName', 'lastName', 'password', 'userType']
 export function UserUpdatePage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  // COUSR02C returns to CDEMO-FROM-PROGRAM: the User List when entered from there (which
+  // passes route state), otherwise the Admin Menu when entered directly from its menu option.
+  const backTo = (location.state as { from?: string } | null)?.from ?? '/admin'
   const [userId, setUserId] = useState(searchParams.get('userId') ?? '')
   const [user, setUser] = useState<UserResponse | null>(null)
   const [firstName, setFirstName] = useState('')
@@ -88,9 +92,9 @@ export function UserUpdatePage() {
     await saveUser()
   }
 
-  // PF3 (COUSR02C): save, then return to the previous (Admin Menu) screen.
+  // PF3 (COUSR02C): save, then return to the previous screen (User List or Admin Menu).
   async function handleSaveAndExit() {
-    if (await saveUser()) navigate('/users')
+    if (await saveUser()) navigate(backTo)
   }
 
   return (
@@ -138,7 +142,7 @@ export function UserUpdatePage() {
           </div>
         </form>
       )}
-      <BackLink to="/users" label="F12 = Cancel" />
+      <BackLink to={backTo} label="F12 = Cancel" />
     </div>
   )
 }

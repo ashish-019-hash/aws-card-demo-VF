@@ -49,6 +49,24 @@ export function optionalNonZeroDigits(
   return nonZeroDigits(value, length, message)
 }
 
+/**
+ * VR-027: Zip must be supplied, and (mirroring the backend's AccountValidationService,
+ * which only validates `addrZip.substring(0, 5)` and allows up to 10 total characters)
+ * only its first 5 characters need to be a non-zero numeric code. The persisted field is
+ * `PIC X(10)` and legacy/seed data commonly stores the "NNNNN-NNNN" ZIP+4 form, so
+ * requiring the *whole* value to be exactly 5 digits (as a plain `nonZeroDigits` check
+ * would) rejects an account's own already-persisted Zip value on an otherwise unchanged
+ * save.
+ */
+export function zipCode(value: string | null | undefined, message: string): string | undefined {
+  if (isBlank(value)) return 'Zip must be supplied.'
+  const v = value!.trim()
+  if (v.length > 10) return message
+  const prefix = v.slice(0, 5)
+  if (!isNumeric(prefix) || prefix.length !== 5 || Number(prefix) === 0) return message
+  return undefined
+}
+
 
 /** VR-011/VR-022/VR-024/etc.: alphabetic (and spaces) only, required. */
 export function alphaRequired(value: string | null | undefined, message: string): string | undefined {

@@ -136,5 +136,5 @@ associated `<label>`).
 ## Totals
 
 - Test files: 29 (22 under `src/test/`, 7 pre-existing outside `src/test/`)
-- Tests: 256 (all passing; Defect #1 in `DEFECTS.md` is resolved and its test now passes normally)
+- Tests: 261 (all passing; Defect #1 in `DEFECTS.md` is resolved and its test now passes normally)
 - Baseline before this task: 7 files / 42 tests (all pre-existing, outside `src/test/`)

@@ -121,11 +121,11 @@ describe('UserUpdatePage (COUSR02C, admin only)', () => {
     expect(await screen.findByText('Validation failed.')).toBeInTheDocument()
   })
 
-  it('F3 = Save and Exit saves the update then navigates to the user list', async () => {
+  it('F3 = Save and Exit saves the update then returns to the origin screen (user list when entered from there)', async () => {
     server.use(http.put('/api/users/:userId', () => HttpResponse.json({ ...existingUser, firstName: 'JANE' })))
     const user = userEvent.setup()
     render(
-      <MemoryRouter initialEntries={['/users/update']}>
+      <MemoryRouter initialEntries={[{ pathname: '/users/update', state: { from: '/users' } }]}>
         <Routes>
           <Route path="/users/update" element={<UserUpdatePage />} />
           <Route path="/users" element={<div>USER LIST SCREEN</div>} />
@@ -150,8 +150,19 @@ describe('UserUpdatePage (COUSR02C, admin only)', () => {
     expect(screen.getByTestId('user-update-form')).toBeInTheDocument()
   })
 
-  it('has an F12 = Cancel link back to the user list', () => {
+  it('F12 = Cancel returns to the Admin Menu when entered directly from the menu (COUSR02C)', () => {
     renderPage()
+    expect(screen.getByRole('link', { name: 'F12 = Cancel' })).toHaveAttribute('href', '/admin')
+  })
+
+  it('F12 = Cancel returns to the user list when entered from the user list', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/users/update', state: { from: '/users' } }]}>
+        <Routes>
+          <Route path="/users/update" element={<UserUpdatePage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
     expect(screen.getByRole('link', { name: 'F12 = Cancel' })).toHaveAttribute('href', '/users')
   })
 })

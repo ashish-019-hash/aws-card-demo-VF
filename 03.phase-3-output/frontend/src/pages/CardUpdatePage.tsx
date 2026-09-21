@@ -12,7 +12,10 @@ import { formatAccountId } from '../format'
 
 type Step = 'search' | 'edit' | 'confirm'
 
-const KNOWN_CARD_FIELDS: readonly string[] = ['cvvCd', 'embossedName', 'activeStatus', 'expirationDate']
+// Backend field names that have a rendered error slot on this screen. `expirationDate` is
+// remapped onto the expiry-month control below; `cvvCd` has no input here (the legacy screen
+// does not edit CVV) so a backend error on it falls through to the message-bar summary.
+const KNOWN_CARD_FIELDS: readonly string[] = ['embossedName', 'activeStatus', 'expirationDate']
 const VALIDATE_FIELD_ORDER = ['embossedName', 'activeStatus', 'expiryMonth', 'expiryYear']
 
 function splitExpiry(expirationDate: string | null): { month: string; year: string; day: string } {
@@ -145,6 +148,10 @@ export function CardUpdatePage() {
         }
       } else if (e instanceof ApiError && e.status === 400) {
         const { fieldErrors, unmapped } = e.fieldErrors(KNOWN_CARD_FIELDS)
+        if (fieldErrors.expirationDate) {
+          fieldErrors.expiryMonth = fieldErrors.expirationDate
+          delete fieldErrors.expirationDate
+        }
         setErrors(fieldErrors)
         setMessage({ kind: 'error', text: unmapped.length ? `${e.message} ${unmapped.join(' ')}` : e.message })
       } else {

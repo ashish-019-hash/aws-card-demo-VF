@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { endpoints } from '../api/endpoints'
 import { ApiError } from '../api/client'
 import type { UserResponse } from '../api/types'
@@ -11,6 +11,9 @@ import { required } from '../validation/rules'
 
 export function UserDeletePage() {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
+  // COUSR03C returns to the calling program: User List when entered from there, else Admin Menu.
+  const backTo = (location.state as { from?: string } | null)?.from ?? '/admin'
   const [userId, setUserId] = useState(searchParams.get('userId') ?? '')
   const [user, setUser] = useState<UserResponse | null>(null)
   const [fieldError, setFieldError] = useState<string | undefined>()
@@ -78,7 +81,7 @@ export function UserDeletePage() {
           </div>
         </>
       )}
-      <BackLink to="/users" />
+      <BackLink to={backTo} />
     </div>
   )
 }

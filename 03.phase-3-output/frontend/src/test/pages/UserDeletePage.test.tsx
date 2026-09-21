@@ -89,8 +89,8 @@ describe('UserDeletePage (COUSR03C, admin only)', () => {
     expect(await screen.findByText('Unable to delete user.')).toBeInTheDocument()
   })
 
-  it('has a Back link to the user list', () => {
+  it('has a Back link to the Admin Menu when entered directly from the menu (COUSR03C)', () => {
     renderPage()
-    expect(screen.getByRole('link', { name: 'F3 = Exit/Back' })).toHaveAttribute('href', '/users')
+    expect(screen.getByRole('link', { name: 'F3 = Exit/Back' })).toHaveAttribute('href', '/admin')
   })
 })
