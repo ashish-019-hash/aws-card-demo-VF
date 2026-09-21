@@ -234,37 +234,31 @@ test.describe('Card Update (COCRDUPC)', () => {
     })
   })
 
-  // DEFECT-001 (see e2e/DEFECTS.md): STORY-026 requires the exact legacy message
-  // "Record changed by some one else..." on a save conflict. The backend instead returns a
-  // modernized message. Marked as an expected failure per task instructions.
-  test.fail(
-    'STORY-026 (DEFECT-001): the conflict message text does not match the legacy wording',
-    async ({ page }) => {
-      await page.locator('#cardNum').fill(MUTABLE_CARD_NUM)
-      await page.getByRole('button', { name: 'Enter' }).click()
-      const originalName = await page.locator('#embossedName').inputValue()
+  // Resolved (see e2e/DEFECTS.md #1): the backend's ConflictException now carries the exact
+  // legacy text ("Record changed by some one else. Please review") for card save conflicts,
+  // and the frontend surfaces it verbatim via e2.message.
+  test('STORY-026: the conflict alert shows the exact legacy conflict message', async ({ page }) => {
+    await page.locator('#cardNum').fill(MUTABLE_CARD_NUM)
+    await page.getByRole('button', { name: 'Enter' }).click()
+    const originalName = await page.locator('#embossedName').inputValue()
 
-      const current = await (await page.request.get(`/api/cards/${MUTABLE_CARD_NUM}`)).json()
+    const current = await (await page.request.get(`/api/cards/${MUTABLE_CARD_NUM}`)).json()
+    await page.request.put(`/api/cards/${MUTABLE_CARD_NUM}`, {
+      headers: await xsrfHeaders(page),
+      data: { expected: current.fields, updated: { ...current.fields, embossedName: 'Concurrent Editor' } },
+    })
+
+    await page.locator('#embossedName').fill('My Local Edit')
+    await page.getByRole('button', { name: 'Enter (validate)' }).click()
+    await page.getByRole('button', { name: 'F5 = Save' }).click()
+    try {
+      await expect(page.getByRole('alert')).toHaveText('Record changed by some one else. Please review')
+    } finally {
+      const after = await (await page.request.get(`/api/cards/${MUTABLE_CARD_NUM}`)).json()
       await page.request.put(`/api/cards/${MUTABLE_CARD_NUM}`, {
         headers: await xsrfHeaders(page),
-        data: { expected: current.fields, updated: { ...current.fields, embossedName: 'Concurrent Editor' } },
+        data: { expected: after.fields, updated: { ...after.fields, embossedName: originalName } },
       })
-
-      await page.locator('#embossedName').fill('My Local Edit')
-      await page.getByRole('button', { name: 'Enter (validate)' }).click()
-      await page.getByRole('button', { name: 'F5 = Save' }).click()
-      // The assertion below is expected to throw (that's the whole point of this
-      // test.fail()) — restore the card in a finally so the suite stays re-runnable
-      // even though this test's own body never reaches its own tail otherwise.
-      try {
-        await expect(page.getByRole('alert')).toHaveText('Record changed by some one else. Please review')
-      } finally {
-        const after = await (await page.request.get(`/api/cards/${MUTABLE_CARD_NUM}`)).json()
-        await page.request.put(`/api/cards/${MUTABLE_CARD_NUM}`, {
-          headers: await xsrfHeaders(page),
-          data: { expected: after.fields, updated: { ...after.fields, embossedName: originalName } },
-        })
-      }
-    },
-  )
+    }
+  })
 })

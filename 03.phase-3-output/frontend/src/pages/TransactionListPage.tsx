@@ -8,6 +8,7 @@ import { MessageBar } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { BackLink } from '../components/BackLink'
 import { isBlank, isNumeric } from '../validation/rules'
+import { formatAmount, formatDateOnly } from '../format'
 
 export function TransactionListPage() {
   const [startId, setStartId] = useState('')
@@ -54,8 +55,8 @@ export function TransactionListPage() {
       <form onSubmit={handleSearch} className="form">
         <div className="form-row">
           <label htmlFor="startId">Jump to Transaction ID</label>
-          <input id="startId" value={startId} onChange={(e) => setStartId(e.target.value)} />
-          <FieldError message={fieldError} />
+          <input id="startId" aria-invalid={Boolean(fieldError)} aria-describedby={fieldError ? 'startId-error' : undefined} value={startId} onChange={(e) => setStartId(e.target.value)} />
+          <FieldError id="startId-error" message={fieldError} />
         </div>
         <div className="form-actions">
           <button type="submit">Enter</button>
@@ -76,11 +77,11 @@ export function TransactionListPage() {
           {items.map((t) => (
             <tr key={t.tranId}>
               <td>{t.tranId}</td>
-              <td>{t.origTs}</td>
+              <td>{formatDateOnly(t.origTs)}</td>
               <td>{t.description}</td>
-              <td>{t.amount}</td>
+              <td>{formatAmount(t.amount)}</td>
               <td>
-                <Link to={`/transactions/view?tranId=${t.tranId}`}>S = View</Link>
+                <Link to={`/transactions/view?tranId=${t.tranId}`} state={{ from: '/transactions' }}>S = View</Link>
               </td>
             </tr>
           ))}

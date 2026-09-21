@@ -63,12 +63,15 @@ test.describe('Bill Payment (COBIL00C)', () => {
     )
   })
 
-  test('N explicitly re-shows the confirm prompt (not treated as an error)', async ({ page }) => {
+  test('N clears the whole screen back to a blank Account ID prompt (not treated as an error)', async ({ page }) => {
     await page.locator('#accountId').fill(BILL_PAYMENT_ACCOUNT_ID)
     await page.getByRole('button', { name: 'Enter' }).click()
     await page.locator('#confirm').fill('N')
     await page.getByTestId('bill-pay-form').getByRole('button', { name: 'Enter' }).click()
-    await expect(page.getByText('Confirm to make a bill payment...')).toBeVisible()
+    await expect(page.getByTestId('bill-payment-balance')).not.toBeVisible()
+    await expect(page.getByTestId('bill-pay-form')).not.toBeVisible()
+    await expect(page.locator('#accountId')).toHaveValue('')
+    await expect(page.getByRole('status')).not.toBeVisible()
   })
 
   test('STORY-036 / BR-011 / BR-012: confirming Y pays the full balance and zeroes the account', async ({

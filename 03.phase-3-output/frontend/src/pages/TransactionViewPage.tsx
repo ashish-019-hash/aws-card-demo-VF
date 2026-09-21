@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { endpoints } from '../api/endpoints'
 import { ApiError } from '../api/client'
 import type { TransactionDetail } from '../api/types'
@@ -8,9 +8,13 @@ import { MessageBar } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { BackLink } from '../components/BackLink'
 import { required } from '../validation/rules'
+import { formatAmount, formatDateOnly } from '../format'
 
 export function TransactionViewPage() {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const backTo = (location.state as { from?: string } | null)?.from ?? '/menu'
   const [tranId, setTranId] = useState(searchParams.get('tranId') ?? '')
   const [tran, setTran] = useState<TransactionDetail | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -42,6 +46,14 @@ export function TransactionViewPage() {
     void lookup(tranId.trim())
   }
 
+  // PF4 (COTRN01C CLEAR-CURRENT-SCREEN): reset the whole screen.
+  function handleClear() {
+    setTranId('')
+    setTran(null)
+    setMessage(null)
+    setFieldError(undefined)
+  }
+
   return (
     <div className="screen">
       <ScreenHeader screenId="COTRN01C" title="View Transaction" />
@@ -49,11 +61,17 @@ export function TransactionViewPage() {
       <form onSubmit={handleSubmit} className="form">
         <div className="form-row">
           <label htmlFor="tranId">Transaction ID</label>
-          <input id="tranId" value={tranId} onChange={(e) => setTranId(e.target.value)} />
-          <FieldError message={fieldError} />
+          <input id="tranId" aria-invalid={Boolean(fieldError)} aria-describedby={fieldError ? 'tranId-error' : undefined} value={tranId} onChange={(e) => setTranId(e.target.value)} />
+          <FieldError id="tranId-error" message={fieldError} />
         </div>
         <div className="form-actions">
           <button type="submit">Enter</button>
+          <button type="button" onClick={handleClear}>
+            F4 = Clear
+          </button>
+          <button type="button" onClick={() => navigate('/transactions')}>
+            F5 = Back to Transaction List
+          </button>
         </div>
       </form>
 
@@ -72,11 +90,11 @@ export function TransactionViewPage() {
           <dt>Description</dt>
           <dd>{tran.description}</dd>
           <dt>Amount</dt>
-          <dd>{tran.amount}</dd>
+          <dd>{formatAmount(tran.amount)}</dd>
           <dt>Original Date</dt>
-          <dd>{tran.origTs}</dd>
+          <dd>{formatDateOnly(tran.origTs)}</dd>
           <dt>Processing Date</dt>
-          <dd>{tran.procTs}</dd>
+          <dd>{formatDateOnly(tran.procTs)}</dd>
           <dt>Merchant ID</dt>
           <dd>{tran.merchantId}</dd>
           <dt>Merchant Name</dt>
@@ -87,7 +105,7 @@ export function TransactionViewPage() {
           <dd>{tran.merchantZip}</dd>
         </dl>
       )}
-      <BackLink to="/menu" />
+      <BackLink to={backTo} />
     </div>
   )
 }

@@ -84,7 +84,9 @@ test.describe('Transaction Report Request (CORPT00C)', () => {
     await page.getByLabel('Monthly').check()
     await page.getByRole('button', { name: 'Enter (validate)' }).click()
     await page.getByRole('button', { name: 'Enter (confirm)' }).click()
-    await expect(page.locator('#confirm').locator('..').locator('.field-error')).toHaveText('Confirm to print the report...')
+    await expect(page.locator('#confirm').locator('..').locator('.field-error')).toHaveText(
+      'Please confirm to print the MONTHLY report...',
+    )
   })
 
   test('VR-114: an invalid confirm value is rejected', async ({ page }) => {
@@ -93,7 +95,7 @@ test.describe('Transaction Report Request (CORPT00C)', () => {
     await page.locator('#confirm').fill('X')
     await page.getByRole('button', { name: 'Enter (confirm)' }).click()
     await expect(page.locator('#confirm').locator('..').locator('.field-error')).toHaveText(
-      'Invalid value. Valid values are (Y/N)...',
+      '"X" is not a valid value to confirm...',
     )
   })
 
@@ -103,30 +105,5 @@ test.describe('Transaction Report Request (CORPT00C)', () => {
     await page.locator('#confirm').fill('Y')
     await page.getByRole('button', { name: 'Enter (confirm)' }).click()
     await expect(page.getByRole('status')).toBeVisible()
-  })
-
-  // DEFECT-002 (see e2e/DEFECTS.md): VR-113/VR-114 mandate
-  // "Please confirm to print the <report> report..." (report name interpolated) and
-  // "<value>" is not a valid value to confirm...' (entered value interpolated). The app
-  // instead shows the generic "Confirm to print the report..." / "Invalid value. Valid
-  // values are (Y/N)..." messages (shared verbatim with the bill-payment/transaction-add
-  // confirm gates). Marked as an expected failure per task instructions.
-  test.fail('VR-113 (DEFECT-002): blank confirm message does not match the legacy wording', async ({ page }) => {
-    await page.getByLabel('Monthly').check()
-    await page.getByRole('button', { name: 'Enter (validate)' }).click()
-    await page.getByRole('button', { name: 'Enter (confirm)' }).click()
-    await expect(page.locator('#confirm').locator('..').locator('.field-error')).toHaveText(
-      'Please confirm to print the MONTHLY report...',
-    )
-  })
-
-  test.fail('VR-114 (DEFECT-002): invalid confirm message does not match the legacy wording', async ({ page }) => {
-    await page.getByLabel('Monthly').check()
-    await page.getByRole('button', { name: 'Enter (validate)' }).click()
-    await page.locator('#confirm').fill('X')
-    await page.getByRole('button', { name: 'Enter (confirm)' }).click()
-    await expect(page.locator('#confirm').locator('..').locator('.field-error')).toHaveText(
-      '"X" is not a valid value to confirm...',
-    )
   })
 })

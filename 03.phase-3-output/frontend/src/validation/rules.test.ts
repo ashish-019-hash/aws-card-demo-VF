@@ -2,17 +2,15 @@ import { describe, expect, it } from 'vitest'
 import {
   alphaOptional,
   alphaRequired,
-  amountFormat,
   dateFormat,
   dateOfBirthInPast,
   expiryMonth,
   expiryYear,
   ficoRange,
+  fieldsEqual,
   hasErrors,
   isBlank,
   isNumeric,
-  menuOption,
-  nonZero,
   nonZeroDigits,
   optionalNonZeroDigits,
   required,
@@ -100,16 +98,6 @@ describe('signedAmount', () => {
   })
 })
 
-describe('amountFormat (VR-088)', () => {
-  it('rejects non-numbers, oversized magnitude, and >2 decimals', () => {
-    expect(amountFormat(null, 'msg')).toBe('msg')
-    expect(amountFormat(100000000, 'msg')).toBe('msg')
-    expect(amountFormat(1.234, 'msg')).toBe('msg')
-    expect(amountFormat(-99999999.99, 'msg')).toBeUndefined()
-    expect(amountFormat(0, 'msg')).toBeUndefined()
-  })
-})
-
 describe('dateFormat / validCalendarDate (VR-089/090/091/092)', () => {
   it('dateFormat enforces YYYY-MM-DD shape', () => {
     expect(dateFormat('2024-01-31', 'msg')).toBeUndefined()
@@ -182,14 +170,6 @@ describe('ssnAreaValid (VR-037)', () => {
   })
 })
 
-describe('nonZero (VR-046/050/053)', () => {
-  it('allows blank, rejects zero, accepts non-zero', () => {
-    expect(nonZero('', 'msg')).toBeUndefined()
-    expect(nonZero('0', 'msg')).toBe('msg')
-    expect(nonZero('5', 'msg')).toBeUndefined()
-  })
-})
-
 describe('userType (VR-118/120)', () => {
   it('requires A or U (case-insensitive)', () => {
     expect(userType('A', 'msg')).toBeUndefined()
@@ -199,20 +179,18 @@ describe('userType (VR-118/120)', () => {
   })
 })
 
-describe('menuOption (VR-003/004)', () => {
-  it('requires numeric value within [1, max]', () => {
-    expect(menuOption('1', 5, 'msg')).toBeUndefined()
-    expect(menuOption('5', 5, 'msg')).toBeUndefined()
-    expect(menuOption('0', 5, 'msg')).toBe('msg')
-    expect(menuOption('6', 5, 'msg')).toBe('msg')
-    expect(menuOption('abc', 5, 'msg')).toBe('msg')
-  })
-})
-
 describe('hasErrors', () => {
   it('detects any defined error message in a FieldErrors map', () => {
     expect(hasErrors({})).toBe(false)
     expect(hasErrors({ a: undefined })).toBe(false)
     expect(hasErrors({ a: undefined, b: 'oops' })).toBe(true)
+  })
+})
+
+describe('fieldsEqual', () => {
+  it('compares by key/value, independent of key insertion order', () => {
+    expect(fieldsEqual({ a: 1, b: 2 }, { b: 2, a: 1 })).toBe(true)
+    expect(fieldsEqual({ a: 1, b: 2 }, { a: 1, b: 3 })).toBe(false)
+    expect(fieldsEqual({}, {})).toBe(true)
   })
 })

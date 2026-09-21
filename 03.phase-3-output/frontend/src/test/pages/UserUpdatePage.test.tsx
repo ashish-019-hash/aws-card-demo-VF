@@ -2,7 +2,7 @@ import { HttpResponse, http } from 'msw'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { server } from '../server'
 import { UserUpdatePage } from '../../pages/UserUpdatePage'
 
@@ -121,8 +121,37 @@ describe('UserUpdatePage (COUSR02C, admin only)', () => {
     expect(await screen.findByText('Validation failed.')).toBeInTheDocument()
   })
 
-  it('has a Back link to the user list', () => {
+  it('F3 = Save and Exit saves the update then navigates to the user list', async () => {
+    server.use(http.put('/api/users/:userId', () => HttpResponse.json({ ...existingUser, firstName: 'JANE' })))
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/users/update']}>
+        <Routes>
+          <Route path="/users/update" element={<UserUpdatePage />} />
+          <Route path="/users" element={<div>USER LIST SCREEN</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await lookupUser(user)
+    await user.clear(screen.getByLabelText('First Name'))
+    await user.type(screen.getByLabelText('First Name'), 'JANE')
+    await user.type(screen.getByLabelText('Password'), 'NEWPASS1')
+    await user.click(screen.getByRole('button', { name: 'F3 = Save and Exit' }))
+    expect(await screen.findByText('USER LIST SCREEN')).toBeInTheDocument()
+  })
+
+  it('F3 = Save and Exit does not navigate away when validation fails', async () => {
+    const user = userEvent.setup()
     renderPage()
-    expect(screen.getByRole('link', { name: 'F3 = Exit/Back' })).toHaveAttribute('href', '/users')
+    await lookupUser(user)
+    await user.clear(screen.getByLabelText('Password'))
+    await user.click(screen.getByRole('button', { name: 'F3 = Save and Exit' }))
+    expect(await screen.findByText('Password can NOT be empty...')).toBeInTheDocument()
+    expect(screen.getByTestId('user-update-form')).toBeInTheDocument()
+  })
+
+  it('has an F12 = Cancel link back to the user list', () => {
+    renderPage()
+    expect(screen.getByRole('link', { name: 'F12 = Cancel' })).toHaveAttribute('href', '/users')
   })
 })

@@ -20,6 +20,7 @@ function renderMenu(admin: boolean) {
           },
           signOut,
           isAdmin: admin,
+          unauthorizedMessage: null,
         }}
       >
         <Routes>

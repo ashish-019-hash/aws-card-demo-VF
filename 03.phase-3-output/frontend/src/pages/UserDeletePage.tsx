@@ -51,8 +51,8 @@ export function UserDeletePage() {
       <form onSubmit={handleLookup} className="form">
         <div className="form-row">
           <label htmlFor="userId">User ID</label>
-          <input id="userId" value={userId} onChange={(e) => setUserId(e.target.value)} maxLength={8} />
-          <FieldError message={fieldError} />
+          <input id="userId" aria-invalid={Boolean(fieldError)} aria-describedby={fieldError ? 'userId-error' : undefined} value={userId} onChange={(e) => setUserId(e.target.value)} maxLength={8} />
+          <FieldError id="userId-error" message={fieldError} />
         </div>
         <div className="form-actions">
           <button type="submit">Enter</button>

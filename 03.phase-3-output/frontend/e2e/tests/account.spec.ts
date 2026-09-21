@@ -41,7 +41,7 @@ test.describe('Account View (COACTVWC)', () => {
   })
 
   test('STORY-013: a well-formed but non-existent account is reported as not found', async ({ page }) => {
-    await page.locator('#acctId').fill('999999')
+    await page.locator('#acctId').fill('99999999999')
     await page.getByRole('button', { name: 'Enter' }).click()
     await expect(page.getByRole('alert')).toBeVisible()
     await expect(page.getByTestId('account-detail')).not.toBeVisible()
@@ -74,12 +74,13 @@ test.describe('Account Update (COACTUPC)', () => {
     await expect(page.locator('.field-error')).toHaveText('Account number not provided')
   })
 
-  test('VR-008: a non-11-digit account number search still allows real (short) seed IDs', async ({ page }) => {
-    // This frontend intentionally relaxes VR-008's exact-11-digit legacy rule for the
-    // real backend's short sequential IDs (documented in README "Backend deviations").
-    await page.locator('#acctId').fill(MUTABLE_ACCOUNT_ID)
+  test('VR-008: a non-11-digit account number on search is rejected with the exact legacy message', async ({ page }) => {
+    // Finding 7 (resolved): this frontend enforces VR-008's exact-11-digit legacy rule; a
+    // short-form real seed id (e.g. "9") is rejected — it must be zero-padded to 11 digits
+    // (e.g. "00000000009", see MUTABLE_ACCOUNT_ID) to reach a real account.
+    await page.locator('#acctId').fill('9')
     await page.getByRole('button', { name: 'Enter' }).click()
-    await expect(page.getByTestId('account-update-form')).toBeVisible()
+    await expect(page.locator('.field-error')).toHaveText('Account Number if supplied must be a 11 digit Non-Zero Number')
   })
 
   test('STORY-016 / VR-009..VR-053: editing to the exact same values reports no change', async ({ page }) => {
@@ -99,12 +100,10 @@ test.describe('Account Update (COACTUPC)', () => {
     )
   })
 
-  // DEFECT-003 (see e2e/DEFECTS.md): VR-010/VR-015 require a *different* message for a
-  // non-blank invalid value ("Account Status must be Y or N.") than for a blank value
-  // ("Account Status must be supplied."). The frontend's `yesNo()` validator only accepts
-  // one message and AccountUpdatePage always passes the "must be supplied" text, so a
-  // non-blank invalid value incorrectly shows the blank-field message instead.
-  test.fail('VR-010 (DEFECT-003): a non-blank invalid Account Status shows the wrong message', async ({ page }) => {
+  // Resolved (see e2e/DEFECTS.md #3): yesNo() now takes separate blank/invalid messages, and
+  // AccountUpdatePage passes 'Account Status must be Y or N.' as the distinct invalid-value
+  // message, so a non-blank invalid value no longer shows the blank-field wording.
+  test('VR-010/VR-015: a non-blank invalid Account Status shows its own distinct message', async ({ page }) => {
     await page.locator('#acctId').fill(MUTABLE_ACCOUNT_ID)
     await page.getByRole('button', { name: 'Enter' }).click()
     await page.locator('#activeStatus').fill('Z')
@@ -287,42 +286,32 @@ test.describe('Account Update (COACTUPC)', () => {
     })
   })
 
-  // DEFECT-001 (see e2e/DEFECTS.md): STORY-018's acceptance criteria requires the exact
-  // legacy message "Record changed by some one else. Please review" on a save conflict.
-  // The backend instead returns a modernized message
-  // ("DATA_CHANGED: This record has been changed by another user since it was read. ...").
-  // Marked as an expected failure per task instructions (do not weaken the assertion,
-  // do not fix production code from a test file).
-  test.fail(
-    'STORY-018 (DEFECT-001): the conflict message text does not match the legacy wording',
-    async ({ page }) => {
-      await page.locator('#acctId').fill(MUTABLE_ACCOUNT_ID)
-      await page.getByRole('button', { name: 'Enter' }).click()
-      await expect(page.getByTestId('account-update-form')).toBeVisible()
+  // Resolved (see e2e/DEFECTS.md #1): the backend's ConflictException now carries the exact
+  // legacy text ("Record changed by some one else. Please review") for account save
+  // conflicts, and the frontend surfaces it verbatim via e2.message.
+  test('STORY-018: the conflict alert shows the exact legacy conflict message', async ({ page }) => {
+    await page.locator('#acctId').fill(MUTABLE_ACCOUNT_ID)
+    await page.getByRole('button', { name: 'Enter' }).click()
+    await expect(page.getByTestId('account-update-form')).toBeVisible()
 
-      const original = await page.locator('#groupId').inputValue()
-      const current = await (await page.request.get(`/api/accounts/${MUTABLE_ACCOUNT_ID}`)).json()
+    const original = await page.locator('#groupId').inputValue()
+    const current = await (await page.request.get(`/api/accounts/${MUTABLE_ACCOUNT_ID}`)).json()
+    await page.request.put(`/api/accounts/${MUTABLE_ACCOUNT_ID}`, {
+      headers: await xsrfHeaders(page),
+      data: { expected: current.fields, updated: { ...current.fields, groupId: uniqueGroupId() } },
+    })
+
+    await page.locator('#groupId').fill(uniqueGroupId())
+    await page.getByRole('button', { name: 'Enter (validate)' }).click()
+    await page.getByRole('button', { name: 'F5 = Save' }).click()
+    try {
+      await expect(page.getByRole('alert')).toHaveText('Record changed by some one else. Please review')
+    } finally {
+      const after = await (await page.request.get(`/api/accounts/${MUTABLE_ACCOUNT_ID}`)).json()
       await page.request.put(`/api/accounts/${MUTABLE_ACCOUNT_ID}`, {
         headers: await xsrfHeaders(page),
-        data: { expected: current.fields, updated: { ...current.fields, groupId: uniqueGroupId() } },
+        data: { expected: after.fields, updated: { ...after.fields, groupId: original } },
       })
-
-      await page.locator('#groupId').fill(uniqueGroupId())
-      await page.getByRole('button', { name: 'Enter (validate)' }).click()
-      await page.getByRole('button', { name: 'F5 = Save' }).click()
-      // The assertion below is expected to throw (that's the whole point of this
-      // test.fail()) — restore the account in a finally so the suite stays
-      // re-runnable even though this test's own body never reaches its own tail
-      // otherwise.
-      try {
-        await expect(page.getByRole('alert')).toHaveText('Record changed by some one else. Please review')
-      } finally {
-        const after = await (await page.request.get(`/api/accounts/${MUTABLE_ACCOUNT_ID}`)).json()
-        await page.request.put(`/api/accounts/${MUTABLE_ACCOUNT_ID}`, {
-          headers: await xsrfHeaders(page),
-          data: { expected: after.fields, updated: { ...after.fields, groupId: original } },
-        })
-      }
-    },
-  )
+    }
+  })
 })

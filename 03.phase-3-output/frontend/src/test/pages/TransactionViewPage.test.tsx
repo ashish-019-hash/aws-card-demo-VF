@@ -2,7 +2,7 @@ import { HttpResponse, http } from 'msw'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { server } from '../server'
 import { TransactionViewPage } from '../../pages/TransactionViewPage'
 
@@ -22,7 +22,7 @@ const detail = {
   merchantZip: '12345',
 }
 
-function renderPage(initialEntries?: string[]) {
+function renderPage(initialEntries?: (string | { pathname: string; state?: unknown })[]) {
   return render(
     <MemoryRouter initialEntries={initialEntries ?? ['/transactions/view']}>
       <TransactionViewPage />
@@ -84,5 +84,36 @@ describe('TransactionViewPage (COTRN01C)', () => {
   it('has a Back link to the main menu', () => {
     renderPage()
     expect(screen.getByRole('link', { name: 'F3 = Exit/Back' })).toHaveAttribute('href', '/menu')
+  })
+
+  it('F3 = Exit/Back preserves the origin route passed via navigation state', () => {
+    renderPage([{ pathname: '/transactions/view', state: { from: '/transactions' } }])
+    expect(screen.getByRole('link', { name: 'F3 = Exit/Back' })).toHaveAttribute('href', '/transactions')
+  })
+
+  it('F4 = Clear resets the transaction id field and hides the detail grid (PF4)', async () => {
+    server.use(http.get('/api/transactions/:id', () => HttpResponse.json(detail)))
+    const user = userEvent.setup()
+    renderPage()
+    await user.type(screen.getByLabelText('Transaction ID'), '100')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    await screen.findByTestId('transaction-detail')
+    await user.click(screen.getByRole('button', { name: 'F4 = Clear' }))
+    expect(screen.getByLabelText('Transaction ID')).toHaveValue('')
+    expect(screen.queryByTestId('transaction-detail')).not.toBeInTheDocument()
+  })
+
+  it('F5 = Back to Transaction List navigates to /transactions (PF5)', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/transactions/view']}>
+        <Routes>
+          <Route path="/transactions/view" element={<TransactionViewPage />} />
+          <Route path="/transactions" element={<div>TRANSACTION LIST SCREEN</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await user.click(screen.getByRole('button', { name: 'F5 = Back to Transaction List' }))
+    expect(await screen.findByText('TRANSACTION LIST SCREEN')).toBeInTheDocument()
   })
 })

@@ -6,7 +6,8 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { MessageBar } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { BackLink } from '../components/BackLink'
-import { nonZeroNumeric, required } from '../validation/rules'
+import { nonZeroDigits, required } from '../validation/rules'
+import { formatAccountId, formatAmount, formatCustomerId } from '../format'
 
 export function AccountViewPage() {
   const [acctId, setAcctId] = useState('')
@@ -20,7 +21,7 @@ export function AccountViewPage() {
     setAccount(null)
     // VR-005/VR-006
     const err = required(acctId, 'Account Filter must  be a non-zero 11 digit number')
-      ?? nonZeroNumeric(acctId, 11, 'Account Filter must  be a non-zero 11 digit number')
+      ?? nonZeroDigits(acctId, 11, 'Account Filter must  be a non-zero 11 digit number')
     setFieldError(err)
     if (err) return
 
@@ -39,8 +40,8 @@ export function AccountViewPage() {
       <form onSubmit={handleSubmit} className="form">
         <div className="form-row">
           <label htmlFor="acctId">Account ID</label>
-          <input id="acctId" value={acctId} onChange={(e) => setAcctId(e.target.value)} maxLength={11} autoFocus />
-          <FieldError message={fieldError} />
+          <input id="acctId" aria-invalid={Boolean(fieldError)} aria-describedby={fieldError ? 'acctId-error' : undefined} value={acctId} onChange={(e) => setAcctId(e.target.value)} maxLength={11} autoFocus />
+          <FieldError id="acctId-error" message={fieldError} />
         </div>
         <div className="form-actions">
           <button type="submit">Enter</button>
@@ -50,9 +51,9 @@ export function AccountViewPage() {
       {account && (
         <dl className="detail-grid" data-testid="account-detail">
           <dt>Account ID</dt>
-          <dd>{account.acctId}</dd>
+          <dd>{formatAccountId(account.acctId)}</dd>
           <dt>Customer ID</dt>
-          <dd>{account.custId}</dd>
+          <dd>{formatCustomerId(account.custId)}</dd>
           <dt>Card Number</dt>
           <dd>{account.cardNum}</dd>
           <dt>Status</dt>
@@ -64,15 +65,15 @@ export function AccountViewPage() {
           <dt>Reissue Date</dt>
           <dd>{account.fields.reissueDate}</dd>
           <dt>Credit Limit</dt>
-          <dd>{account.fields.creditLimit}</dd>
+          <dd>{formatAmount(account.fields.creditLimit)}</dd>
           <dt>Cash Credit Limit</dt>
-          <dd>{account.fields.cashCreditLimit}</dd>
+          <dd>{formatAmount(account.fields.cashCreditLimit)}</dd>
           <dt>Current Balance</dt>
-          <dd>{account.fields.currBal}</dd>
+          <dd>{formatAmount(account.fields.currBal)}</dd>
           <dt>Current Cycle Credit</dt>
-          <dd>{account.fields.currCycCredit}</dd>
+          <dd>{formatAmount(account.fields.currCycCredit)}</dd>
           <dt>Current Cycle Debit</dt>
-          <dd>{account.fields.currCycDebit}</dd>
+          <dd>{formatAmount(account.fields.currCycDebit)}</dd>
           <dt>Group ID</dt>
           <dd>{account.fields.groupId}</dd>
           <dt>Name</dt>

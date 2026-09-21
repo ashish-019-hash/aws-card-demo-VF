@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { endpoints } from '../api/endpoints'
 import type { MenuOption } from '../api/types'
 import { ScreenHeader } from '../components/ScreenHeader'
@@ -7,8 +7,12 @@ import { MessageBar } from '../components/MessageBar'
 import { useAuth } from '../auth/AuthContext'
 import { SCREEN_ROUTES } from './menuRoutes'
 
+// STORY-002 (COSGN00C routes admin users to COADM01C and regular users to COMEN01C on
+// sign-on): the same role split must hold for direct/bookmarked navigation to /menu or
+// /admin, not just the post-sign-on redirect, so an admin can't land on the regular menu
+// (and vice versa) just by typing the other URL.
 export function MenuPage({ admin }: { admin: boolean }) {
-  const { signOut } = useAuth()
+  const { signOut, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [options, setOptions] = useState<MenuOption[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -19,6 +23,10 @@ export function MenuPage({ admin }: { admin: boolean }) {
       .then((res) => setOptions(res.options))
       .catch(() => setError('Unable to load menu options.'))
   }, [])
+
+  if (admin !== isAdmin) {
+    return <Navigate to={isAdmin ? '/admin' : '/menu'} replace />
+  }
 
   return (
     <div className="screen">

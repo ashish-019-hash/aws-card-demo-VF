@@ -15,8 +15,8 @@ Status legend:
 - **N/A** — no UI input exists that can violate this rule (the frontend replaced a legacy
   typed field with a link, a role-scoped server list, or a search-key field this screen
   doesn't expose). Explained per-row.
-- **Defect** — the app's actual behavior deviates from the catalog; see `e2e/DEFECTS.md`.
-  A `test.fail()` documents the exact expected-vs-actual text.
+- **Defect (resolved)** — the app's behavior originally deviated from the catalog; the defect
+  was fixed and the test now passes normally. History is kept in `e2e/DEFECTS.md`.
 
 All spec files live in `e2e/tests/`.
 
@@ -41,7 +41,7 @@ All spec files live in `e2e/tests/`.
 | STORY-015 | User looks up an account to prepare an update | Tested | account.spec.ts: STORY-015 |
 | STORY-016 | User edits account/customer fields and the system detects no real change | Tested | account.spec.ts: STORY-016/VR-009..VR-053 |
 | STORY-017 | User edits an account and confirms the save (two-step confirm) | Tested | account.spec.ts: STORY-017 |
-| STORY-018 | User is blocked from saving when someone else changed the record first | Tested (behavior) / Defect (text) | account.spec.ts: STORY-018/BR-007 (behavior); STORY-018 (DEFECT-001) (text, `test.fail`) |
+| STORY-018 | User is blocked from saving when someone else changed the record first | Tested | account.spec.ts: STORY-018/BR-007 (behavior); STORY-018 exact legacy conflict message (DEFECT-001, resolved) |
 | STORY-019 | User sees a failure message if the update cannot be committed | N/A | Requires forcing a file-lock failure or a `REWRITE` failure at the database layer after the concurrency check has already passed — not reachable through the public HTTP API in a black-box test without directly manipulating DB locks/transactions. |
 | STORY-020 | User browses the full list of credit cards | Tested | card.spec.ts: STORY-020/BR-015, STORY-020 pagination |
 | STORY-021 | User filters the card list by account number and/or card number | Tested | card.spec.ts: STORY-021/BR-014 |
@@ -49,7 +49,7 @@ All spec files live in `e2e/tests/`.
 | STORY-023 | User looks up a specific card by account and/or card number | Tested | card.spec.ts: STORY-023 |
 | STORY-024 | User updates a card's expiry date, active status, and embossed name | Tested | card.spec.ts: STORY-024, VR-065/066/067/068 |
 | STORY-025 | User confirms a card update before it is saved | Tested | card.spec.ts: STORY-025/STORY-026 |
-| STORY-026 | User is blocked from saving a card changed by someone else | Tested (behavior) / Defect (text) | card.spec.ts: STORY-026/BR-009 (behavior); STORY-026 (DEFECT-001) (text, `test.fail`) |
+| STORY-026 | User is blocked from saving a card changed by someone else | Tested | card.spec.ts: STORY-026/BR-009 (behavior); STORY-026 exact legacy conflict message (DEFECT-001, resolved) |
 | STORY-027 | User browses the transaction log in pages | Tested | transaction.spec.ts: STORY-027 |
 | STORY-028 | User jumps directly to a transaction ID from the list screen | Tested | transaction.spec.ts: STORY-028 |
 | STORY-029 | User selects a transaction row to view its detail | Tested | transaction.spec.ts: STORY-029 |
@@ -65,7 +65,7 @@ All spec files live in `e2e/tests/`.
 | STORY-039 | User requests a monthly transaction report | Tested | report.spec.ts: STORY-039/BR-013 |
 | STORY-040 | User requests a yearly transaction report | Tested | report.spec.ts: STORY-040/BR-013 |
 | STORY-041 | User requests a report for a custom date range | Tested | report.spec.ts: STORY-041 (x2) |
-| STORY-042 | User must confirm before the report job is submitted | Tested (behavior) / Defect (text) | report.spec.ts: STORY-042/VR-113, VR-114 (behavior); VR-113/VR-114 (DEFECT-002) (text, `test.fail`) |
+| STORY-042 | User must confirm before the report job is submitted | Tested | report.spec.ts: STORY-042/VR-113, VR-114 (behavior and exact interpolated legacy text; DEFECT-002 resolved) |
 | STORY-043 | User's confirmed report request is submitted as a background job | Tested | report.spec.ts: STORY-043 |
 | STORY-044 | Admin browses the list of application users | Tested | user-admin.spec.ts: STORY-044 |
 | STORY-045 | Admin selects a user from the list to update or delete | Tested (indirect) | user-admin.spec.ts: STORY-046/047/048/049/050 lifecycle test navigates via the same "U = Update"/"D = Delete" list links |
@@ -126,12 +126,12 @@ All spec files live in `e2e/tests/`.
 | VR-007 | Account number (search key) required | Tested | account.spec.ts: VR-007 |
 | VR-008 | Account number 11-digit format | Tested (documented deviation) | account.spec.ts: VR-008 — the frontend intentionally relaxes this to "numeric, non-zero, ≤11 digits" so the backend's short sequential IDs remain usable; documented in `README.md` "Backend deviations", not a defect. |
 | VR-009 | 1215-EDIT-MANDATORY (generic "field must be supplied") | Tested (indirect) | Same required-field pattern is directly tested many times elsewhere (VR-007, VR-062, VR-064, VR-095, VR-116/117/119, VR-127/128, and the 11-field sweep VR-075..085); Address Line 1 itself (the field that cites VR-009 directly) is not separately re-tested. |
-| VR-010 | 1220-EDIT-YESNO (generic Y/N) | Tested (behavior) / Defect (text) | account.spec.ts: VR-010 (Account Status, blank case — passing); VR-010 (DEFECT-003) (Account Status, non-blank invalid case, `test.fail`). Also implements VR-030c (Primary Card Holder) via the same validator — not separately re-tested. |
+| VR-010 | 1220-EDIT-YESNO (generic Y/N) | Tested | account.spec.ts: VR-010 (Account Status, blank case); VR-010/VR-015 (Account Status, non-blank invalid case shows its own distinct message; DEFECT-003 resolved). Also implements VR-030c (Primary Card Holder) via the same validator — not separately re-tested. |
 | VR-011 | 1225-EDIT-ALPHA-REQD (generic alpha required) | Tested | account.spec.ts: VR-011 (First Name). Also implements VR-024/026/028/029 (Last Name/State/City/Country) via the same validator — not separately re-tested. |
 | VR-012 | 1235-EDIT-ALPHA-OPT (generic alpha optional, e.g. Middle Name) | Tested (indirect) | Not directly tested (Middle Name is optional and low-risk); shares its implementation (`alphaOptional`) with VR-011's `alphaRequired`, which is tested. |
 | VR-013 | 1245-EDIT-NUM-REQD (generic numeric required, non-zero) | Tested | account.spec.ts: VR-027 (Zip), VR-030b (EFT Account Id). Also implements VR-021 (FICO numeric format) — not separately re-tested. |
 | VR-014 | 1250-EDIT-SIGNED-9V2 (generic signed amount) | Tested | account.spec.ts: VR-014 (Credit Limit). Also implements VR-016..020 (Cash Credit Limit, Current Balance, Current Cycle Credit/Debit) via the same validator — not separately re-tested. |
-| VR-015 | Account Status = VR-010 | Tested (behavior) / Defect (text) | See VR-010. |
+| VR-015 | Account Status = VR-010 | Tested | See VR-010. |
 | VR-016 | Credit Limit = VR-014 | Tested | account.spec.ts: VR-014 |
 | VR-017 | Cash Credit Limit = VR-014 | Tested (indirect) | Same validator as VR-014/VR-016; not independently re-tested on this specific field. |
 | VR-018 | Current Balance = VR-014 | Tested (indirect) | Same validator as VR-014/VR-016. |
@@ -148,7 +148,7 @@ All spec files live in `e2e/tests/`.
 | VR-029 | Country = VR-011 | Tested (indirect) | Same validator as VR-011/VR-022. |
 | VR-030 | Date year/century (CSUTLDPY) | Tested (indirect) | Exercised as part of the composite Open Date calendar-validity test (VR-030/031/032/034) — a bad calendar date fails via the combined date validator; the century/year-specific branch is not separately isolated. |
 | VR-030b | EFT Account Id 10-digit | Tested | account.spec.ts: VR-030b |
-| VR-030c | Primary Card Holder = VR-010 | Tested (indirect) | Same validator as VR-010/VR-015; also affected by DEFECT-003 but not separately re-tested. |
+| VR-030c | Primary Card Holder = VR-010 | Tested (indirect) | Same validator as VR-010/VR-015; not separately re-tested. |
 | VR-031 | Date month range (CSUTLDPY) | Tested (indirect) | See VR-030. |
 | VR-032 | Date day range (CSUTLDPY) | Tested (indirect) | See VR-030. |
 | VR-033 | Day must be legal for the given month (leap year etc.) | Tested (indirect) | Feb 30 in the VR-030/031/032/034 test exercises this exact cross-check (30 is never legal in Feb). |
@@ -271,8 +271,8 @@ All spec files live in `e2e/tests/`.
 | VR-110 | End Date - Year numeric | N/A (superseded) | See VR-105 (End Date). |
 | VR-111 | Start Date calendar validity (composed) | Tested | report.spec.ts: VR-111 |
 | VR-112 | End Date calendar validity (composed) | Tested | report.spec.ts: VR-112 |
-| VR-113 | Confirm required before submission | Tested (behavior) / Defect (text) | report.spec.ts: STORY-042/VR-113 (behavior); VR-113 (DEFECT-002) (text, `test.fail`) |
-| VR-114 | Confirm must be Y/N | Tested (behavior) / Defect (text) | report.spec.ts: VR-114 (behavior); VR-114 (DEFECT-002) (text, `test.fail`) |
+| VR-113 | Confirm required before submission | Tested | report.spec.ts: STORY-042/VR-113 (behavior and exact interpolated text; DEFECT-002 resolved) |
+| VR-114 | Confirm must be Y/N | Tested | report.spec.ts: VR-114 (behavior and exact interpolated text; DEFECT-002 resolved) |
 
 ### User Admin (COUSR00C/01C/02C/03C)
 
@@ -297,7 +297,7 @@ All spec files live in `e2e/tests/`.
 
 - **User Stories**: 50/50 accounted for — 47 Tested, 3 explicitly N/A (STORY-008, STORY-019; STORY-045 tested indirectly).
 - **Business Rules**: 16/16 accounted for — 14 Tested (2 indirect), 2 explicitly N/A (BR-004, BR-008).
-- **Validation Rules**: 130/130 accounted for — 84 Tested (30 indirect), 33 explicitly N/A (mostly VR-003/004/056/057/069/115 row-selection-flag/menu-option fields that this frontend replaced with links or role-scoped server lists, and VR-099..110 which this frontend replaced with a single `YYYY-MM-DD` field per date instead of 3 discrete month/day/year fields), 5 flagged as text-mismatch defects (STORY-018/026 → DEFECT-001; STORY-042/VR-113/VR-114 → DEFECT-002; VR-010/VR-015 → DEFECT-003, see `e2e/DEFECTS.md`). A sixth defect (DEFECT-004, a session-expiry-message race on 401 mid-session) is a technical/resilience finding not tied to a specific catalog id; see `network-failure.spec.ts` and `e2e/DEFECTS.md`.
+- **Validation Rules**: 130/130 accounted for — 84 Tested (30 indirect), 33 explicitly N/A (mostly VR-003/004/056/057/069/115 row-selection-flag/menu-option fields that this frontend replaced with links or role-scoped server lists, and VR-099..110 which this frontend replaced with a single `YYYY-MM-DD` field per date instead of 3 discrete month/day/year fields), 5 previously flagged as text-mismatch defects (STORY-018/026 → DEFECT-001; STORY-042/VR-113/VR-114 → DEFECT-002; VR-010/VR-015 → DEFECT-003) are now resolved and covered by plain passing tests. A fourth defect (DEFECT-004, a session-expiry-message race on 401 mid-session) was also resolved; see `network-failure.spec.ts` and `e2e/DEFECTS.md` for history. Current suite: 110 tests, all passing, no `test.fail()` markers.
 
 None of the N/A rows above reflect a defect: in every case the modern UI either removed the
 legacy input entirely (replaced by a link, a role-scoped list, or a consolidated field) or

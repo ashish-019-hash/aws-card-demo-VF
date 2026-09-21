@@ -1,15 +1,19 @@
 import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { endpoints } from '../api/endpoints'
 import { ApiError } from '../api/client'
 import type { CardDetail, CardFields } from '../api/types'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { MessageBar } from '../components/MessageBar'
+import { MessageBar, type Message } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { BackLink } from '../components/BackLink'
-import { alphaRequired, expiryMonth, expiryYear, required, yesNo, type FieldErrors } from '../validation/rules'
+import { alphaRequired, expiryMonth, expiryYear, fieldsEqual, focusFirstInvalidField, hasErrors, required, yesNo, type FieldErrors } from '../validation/rules'
+import { formatAccountId } from '../format'
 
 type Step = 'search' | 'edit' | 'confirm'
+
+const KNOWN_CARD_FIELDS: readonly string[] = ['cvvCd', 'embossedName', 'activeStatus', 'expirationDate']
+const VALIDATE_FIELD_ORDER = ['embossedName', 'activeStatus', 'expiryMonth', 'expiryYear']
 
 function splitExpiry(expirationDate: string | null): { month: string; year: string; day: string } {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expirationDate ?? '')
@@ -38,6 +42,8 @@ function validateCardFields(embossedName: string, status: string, month: string,
 
 export function CardUpdatePage() {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const backTo = (location.state as { from?: string } | null)?.from ?? '/menu'
   const [step, setStep] = useState<Step>('search')
   const [cardNum, setCardNum] = useState(searchParams.get('cardNum') ?? '')
   const [searchError, setSearchError] = useState<string | undefined>()
@@ -50,7 +56,7 @@ export function CardUpdatePage() {
   const [day, setDay] = useState('01')
   const [cvv, setCvv] = useState<number | null>(null)
   const [errors, setErrors] = useState<FieldErrors>({})
-  const [message, setMessage] = useState<{ kind: 'error' | 'success' | 'info'; text: string } | null>(null)
+  const [message, setMessage] = useState<Message | null>(null)
 
   async function lookup(num: string) {
     try {
@@ -94,12 +100,13 @@ export function CardUpdatePage() {
     if (!expected) return
     const fieldErrors = validateCardFields(embossedName, status, month, year)
     setErrors(fieldErrors)
-    if (Object.values(fieldErrors).some(Boolean)) {
+    if (hasErrors(fieldErrors)) {
       setMessage(null)
+      focusFirstInvalidField(fieldErrors, VALIDATE_FIELD_ORDER)
       return
     }
     const draft = buildDraft()
-    if (JSON.stringify(draft) === JSON.stringify(expected)) {
+    if (fieldsEqual(draft, expected)) {
       setMessage({ kind: 'info', text: 'No change detected with respect to values fetched.' })
       return
     }
@@ -137,12 +144,9 @@ export function CardUpdatePage() {
           /* keep showing the conflict message even if refresh fails */
         }
       } else if (e instanceof ApiError && e.status === 400) {
-        const fieldErrors: FieldErrors = {}
-        e.errors.forEach((fe) => {
-          fieldErrors[fe.field] = fe.message
-        })
+        const { fieldErrors, unmapped } = e.fieldErrors(KNOWN_CARD_FIELDS)
         setErrors(fieldErrors)
-        setMessage({ kind: 'error', text: e.message })
+        setMessage({ kind: 'error', text: unmapped.length ? `${e.message} ${unmapped.join(' ')}` : e.message })
       } else {
         setMessage({ kind: 'error', text: e instanceof ApiError ? e.message : 'Unable to save card.' })
       }
@@ -171,14 +175,14 @@ export function CardUpdatePage() {
         <form onSubmit={handleSearch} className="form">
           <div className="form-row">
             <label htmlFor="cardNum">Card Number</label>
-            <input id="cardNum" value={cardNum} onChange={(e) => setCardNum(e.target.value)} maxLength={16} autoFocus />
-            <FieldError message={searchError} />
+            <input id="cardNum" aria-invalid={Boolean(searchError)} aria-describedby={searchError ? 'cardNum-error' : undefined} value={cardNum} onChange={(e) => setCardNum(e.target.value)} maxLength={16} autoFocus />
+            <FieldError id="cardNum-error" message={searchError} />
           </div>
           <div className="form-actions">
             <button type="submit">Enter</button>
           </div>
         </form>
-        <BackLink to="/menu" />
+        <BackLink to={backTo} />
       </div>
     )
   }
@@ -190,7 +194,7 @@ export function CardUpdatePage() {
       <form onSubmit={handleValidate} className="form">
         <div className="form-row">
           <label>Account ID</label>
-          <span>{card?.acctId}</span>
+          <span>{formatAccountId(card?.acctId)}</span>
         </div>
         <div className="form-row">
           <label>Card Number</label>
@@ -200,42 +204,50 @@ export function CardUpdatePage() {
           <label htmlFor="embossedName">Cardholder Name on Card</label>
           <input
             id="embossedName"
+            aria-invalid={Boolean(errors.embossedName)}
+            aria-describedby={errors.embossedName ? 'embossedName-error' : undefined}
             value={embossedName}
             disabled={step === 'confirm'}
             onChange={(e) => setEmbossedName(e.target.value)}
           />
-          <FieldError message={errors.embossedName} />
+          <FieldError id="embossedName-error" message={errors.embossedName} />
         </div>
         <div className="form-row">
           <label htmlFor="activeStatus">Card Active Status (Y/N)</label>
           <input
             id="activeStatus"
+            aria-invalid={Boolean(errors.activeStatus)}
+            aria-describedby={errors.activeStatus ? 'activeStatus-error' : undefined}
             value={status}
             maxLength={1}
             disabled={step === 'confirm'}
             onChange={(e) => setStatus(e.target.value)}
           />
-          <FieldError message={errors.activeStatus} />
+          <FieldError id="activeStatus-error" message={errors.activeStatus} />
         </div>
         <div className="form-row">
           <label htmlFor="expiryMonth">Expiry Month (1-12)</label>
           <input
             id="expiryMonth"
+            aria-invalid={Boolean(errors.expiryMonth)}
+            aria-describedby={errors.expiryMonth ? 'expiryMonth-error' : undefined}
             value={month}
             disabled={step === 'confirm'}
             onChange={(e) => setMonth(e.target.value)}
           />
-          <FieldError message={errors.expiryMonth} />
+          <FieldError id="expiryMonth-error" message={errors.expiryMonth} />
         </div>
         <div className="form-row">
           <label htmlFor="expiryYear">Expiry Year (1950-2099)</label>
           <input
             id="expiryYear"
+            aria-invalid={Boolean(errors.expiryYear)}
+            aria-describedby={errors.expiryYear ? 'expiryYear-error' : undefined}
             value={year}
             disabled={step === 'confirm'}
             onChange={(e) => setYear(e.target.value)}
           />
-          <FieldError message={errors.expiryYear} />
+          <FieldError id="expiryYear-error" message={errors.expiryYear} />
         </div>
 
         {step === 'edit' && (
@@ -255,7 +267,7 @@ export function CardUpdatePage() {
           </button>
         </div>
       )}
-      <BackLink to="/menu" />
+      <BackLink to={backTo} />
     </div>
   )
 }

@@ -22,6 +22,25 @@ export class ApiError extends Error {
   fieldError(field: string): string | undefined {
     return this.errors.find((e) => e.field === field)?.message
   }
+
+  /**
+   * Splits the backend's field errors into ones that map onto a known local input id and
+   * ones that don't (e.g. a cross-field or backend-only field name with no corresponding
+   * input on this screen). Callers should still surface `unmapped` messages (e.g. appended
+   * to the summary message) instead of silently dropping them — see review Finding 8.
+   */
+  fieldErrors(knownFields: readonly string[]): { fieldErrors: Record<string, string>; unmapped: string[] } {
+    const fieldErrors: Record<string, string> = {}
+    const unmapped: string[] = []
+    for (const e of this.errors) {
+      if (knownFields.includes(e.field)) {
+        fieldErrors[e.field] = e.message
+      } else {
+        unmapped.push(e.message)
+      }
+    }
+    return { fieldErrors, unmapped }
+  }
 }
 
 /** Read a cookie value by name (used to echo XSRF-TOKEN back in the request header). */

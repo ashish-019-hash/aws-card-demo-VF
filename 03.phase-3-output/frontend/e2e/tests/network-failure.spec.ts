@@ -18,13 +18,11 @@ test.describe('Network failure handling (mocked backend responses)', () => {
     await expect(page.getByRole('alert')).toHaveText('Unable to look up account.')
   })
 
-  // DEFECT-004 (see e2e/DEFECTS.md): the redirect to /signon itself works (security
-  // behavior is intact), but the explanatory "session expired" message is lost to a race
-  // between AuthContext's state-carrying `navigate()` call and RequireAuth's own
-  // (state-less) `<Navigate>` re-render, so no message is shown. Marked as an expected
-  // failure per task instructions (do not weaken the assertion, do not fix production code
-  // from a test file).
-  test.fail('a 401 response mid-session redirects back to Sign On with an expiry message (DEFECT-004)', async ({ page }) => {
+  // Resolved (see e2e/DEFECTS.md #4): the 401 redirect is now owned entirely by
+  // RequireAuth (AuthContext only records *why* via unauthorizedMessage instead of also
+  // calling navigate() itself), so there's no longer a race between two competing
+  // navigations to /signon, and the explanatory message survives the redirect.
+  test('a 401 response mid-session redirects back to Sign On with an expiry message', async ({ page }) => {
     await signOnAsUser(page)
     await page.goto('/accounts/view')
     await page.route('**/api/accounts/**', (route) =>
@@ -34,17 +32,6 @@ test.describe('Network failure handling (mocked backend responses)', () => {
     await page.getByRole('button', { name: 'Enter' }).click()
     await expect(page).toHaveURL(/\/signon$/)
     await expect(page.getByRole('alert')).toHaveText('Your session has expired. Please sign on again.')
-  })
-
-  test('a 401 response mid-session redirects back to Sign On (the redirect itself works; see DEFECT-004 for the lost message)', async ({ page }) => {
-    await signOnAsUser(page)
-    await page.goto('/accounts/view')
-    await page.route('**/api/accounts/**', (route) =>
-      route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ code: 'UNAUTHORIZED', message: 'Session expired.' }) }),
-    )
-    await page.locator('#acctId').fill(READONLY_ACCOUNT_ID)
-    await page.getByRole('button', { name: 'Enter' }).click()
-    await expect(page).toHaveURL(/\/signon$/)
   })
 
   test('a 500 response while loading the card list shows a fallback error message', async ({ page }) => {

@@ -50,7 +50,7 @@ function renderPage() {
 async function goToEdit(user: ReturnType<typeof userEvent.setup>) {
   server.use(http.get('/api/accounts/:id', () => HttpResponse.json(baseAccount)))
   renderPage()
-  await user.type(screen.getByLabelText('Account ID'), '10')
+  await user.type(screen.getByLabelText('Account ID'), '00000000010')
   await user.click(screen.getByRole('button', { name: 'Enter' }))
   await screen.findByTestId('account-update-form')
 }
@@ -174,7 +174,7 @@ describe('AccountUpdatePage (COACTUPC)', () => {
     )
     const user = userEvent.setup()
     renderPage()
-    await user.type(screen.getByLabelText('Account ID'), '10')
+    await user.type(screen.getByLabelText('Account ID'), '00000000010')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
     await screen.findByTestId('account-update-form')
     await changeAndValidate(user, 'First Name', 'JANE')
@@ -210,11 +210,11 @@ describe('AccountUpdatePage (COACTUPC)', () => {
   })
 
   it.each([
-    ['Account Status (Y/N)', 'X', 'Account Status must be supplied.'],
+    ['Account Status (Y/N)', 'X', 'Account Status must be Y or N.'],
     ['Credit Limit', 'abc', 'Credit Limit must be supplied.'],
     ['Zip', '123', 'Zip must be a 5 digit number.'],
     ['EFT Account ID', '123', 'EFT Account Id must be a 10 digit number.'],
-    ['Primary Card Holder (Y/N)', 'X', 'Primary Card Holder must be supplied.'],
+    ['Primary Card Holder (Y/N)', 'X', 'Primary Card Holder must be Y or N.'],
     ['State', 'ZZ', 'State: is not a valid state code'],
     ['City (Address Line 3)', '123', 'City must be supplied.'],
   ])('blocks validate with the exact legacy message for %s = "%s"', async (label, value, expected) => {

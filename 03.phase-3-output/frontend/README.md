@@ -90,10 +90,12 @@ dead-menu-option behavior (BR-003).
 ## Testing
 
 `npx vitest run` — Vitest + Testing Library + MSW (mocked backend responses).
-7 test files, 42 tests, covering: validation rules, the API client (CSRF header,
-`ApiError` parsing, 401 handling), sign-on, admin gating, and the trickier
-multi-step flows (card update's search→edit→confirm→save with a simulated 409
-conflict, bill payment's confirm gate, transaction add's confirm gate).
+29 test files, 256 tests, covering: validation rules, the API client (CSRF header,
+`ApiError` parsing, 401 handling), sign-on, admin gating, every page's rendering,
+field/cross-field validation, navigation decisions and mocked API boundaries, and
+the trickier multi-step flows (card update's search→edit→confirm→save with a
+simulated 409 conflict, bill payment's confirm gate, transaction add's confirm
+gate). See `src/test/TEST-MATRIX.md` for the test-to-spec traceability matrix.
 
 Manual QA was performed against the live backend through the public preview
 tunnel: sign-on (regular + admin), main/admin menu, account view, credit card
@@ -138,37 +140,35 @@ you but does not touch the backend.
   directly (e.g. to simulate a concurrent edit by "another user") must pass
   `headers: await xsrfHeaders(page)`, or the backend's CSRF filter silently
   403s the call.
-- **Known defects found by this suite**: see `e2e/DEFECTS.md` for full
-  writeups. Each is captured as a `test.fail()` so the suite stays green while
-  still pinning down the exact expected-vs-actual behavior:
+- **Resolved defects found by this suite**: see `e2e/DEFECTS.md` for full
+  writeups of the original defect, its fix, and the (now plain, passing) test
+  that proves the fix. All four have been fixed in production code:
   - **DEFECT-001**: the account/card "changed by another user" conflict
-    message text doesn't match the legacy wording (STORY-018, STORY-026).
-  - **DEFECT-002**: the transaction report confirm-value error message text
-    doesn't match the legacy wording (VR-113, VR-114).
-  - **DEFECT-003**: an invalid (non-blank) Account Status value shows the same
-    message as a blank Account Status value, because `yesNo()` in
-    `src/validation/rules.ts` doesn't distinguish the two cases (VR-010/VR-015;
-    also affects the Primary Card Holder Indicator field via the same
-    validator).
-  - **DEFECT-004**: a 401 response received mid-session correctly redirects
-    to Sign On, but loses its "session expired" message — a race between
-    `AuthContext`'s `onUnauthorized` navigate (which carries the message in
-    `location.state`) and `RequireAuth`'s own state-less re-render `<Navigate>`,
-    which fires second and wins.
+    message now uses the exact legacy text (STORY-018, STORY-026).
+  - **DEFECT-002**: the transaction report confirm-value error messages now
+    interpolate the report type / entered value to match the legacy wording
+    (VR-113, VR-114).
+  - **DEFECT-003**: `yesNo()` in `src/validation/rules.ts` now takes a
+    separate invalid-value message, so a non-blank invalid Account Status (or
+    Primary Card Holder Indicator) shows its own distinct message instead of
+    the blank-field one (VR-010/VR-015).
+  - **DEFECT-004**: the 401 redirect is now owned entirely by `RequireAuth`;
+    `AuthContext` only records the reason via context state instead of also
+    calling `navigate()` itself, so there's no longer a race between two
+    competing redirects and the "session expired" message survives.
 
 ## Backend deviations / known gaps (informational, not bugs in this frontend)
 
 - **Account ID format**: the legacy BMS maps fix the account number field at
-  exactly 11 digits (VR-005/006/007/008/054/055/072/095). This backend instead
-  assigns accounts a plain auto-incrementing `Long` id and does not itself
-  enforce an 11-digit format on `GET/PUT /api/accounts/{id}` — real seed data
-  uses ids like `2`, `10`, `27`, `50`. Enforcing the legacy fixed width
-  client-side would make every real account unreachable, so this frontend
-  validates "numeric, non-zero, at most 11 digits" (`nonZeroNumeric` in
-  `src/validation/rules.ts`) instead of the exact-length legacy rule. Card
-  numbers, by contrast, genuinely are a fixed 16 digits in the backend's data
-  model, so `CardListPage`/`CardViewPage`'s card-number filter still enforces
-  exact length.
+  exactly 11 digits (VR-005/006/007/008/054/055/072/095), and this is what the
+  frontend validates client-side (`nonZeroDigits`/`optionalNonZeroDigits` in
+  `src/validation/rules.ts`, exact length 11). The backend's `Long` id parsing
+  strips leading zeros transparently, so a zero-padded 11-digit id (e.g.
+  `00000000010`) round-trips to the same account as the bare id (`10`) —
+  confirmed by direct comparison of `GET /api/accounts/00000000010` and
+  `GET /api/accounts/10`. Card numbers are a fixed 16 digits in the backend's
+  data model, so `CardListPage`/`CardViewPage`'s card-number filter enforces
+  exact length there too.
 - **VR-001–VR-004** (sign-on mandatory fields, menu option validity) are not
   implemented as distinct rules server-side (see backend README); VR-001/002
   are covered by this frontend's client-side required-field checks plus the
@@ -185,6 +185,20 @@ you but does not touch the backend.
 
 ## Troubleshooting
 
+- **Exposing this dev server through a public preview/tunnel URL**: by default
+  `vite.config.ts` binds to `localhost` only and keeps Vite's default
+  (localhost-only) `allowedHosts` check, so a request whose `Host` header names
+  a tunnel/public hostname is rejected outright (`Blocked request`) rather than
+  silently accepted from anywhere — this is intentional; a wide-open
+  `allowedHosts: true` would let any site's DNS rebind onto this dev server.
+  To allow a specific preview host through, set `VITE_PREVIEW_HOST` to that
+  exact hostname before starting the dev server, e.g.:
+  ```sh
+  VITE_PREVIEW_HOST=my-tunnel-host.example.com npm run dev
+  ```
+  This rebinds to `0.0.0.0`, adds that one host to `allowedHosts`, and — only
+  for that verified host — rewrites the proxied `/api/*` requests' `Origin`
+  header to `http://localhost:5173` (see the next item for why).
 - **403 on `/api/session` (or any `/api/*` call) when accessed through a public
   preview/tunnel URL**: the backend's CORS allow-list only trusts
   `http://localhost:5173` as an `Origin`. When the dev server is reached
@@ -192,8 +206,9 @@ you but does not touch the backend.
   that hostname as `Origin`, which the backend's CORS filter rejects before
   the request reaches the sign-on logic. `vite.config.ts`'s `/api` proxy
   rewrites the outgoing `Origin` header to `http://localhost:5173` for exactly
-  this reason — do not remove that `configure` hook while testing through a
-  tunnel. This is a preview-environment artifact, not an application bug.
+  this reason, but only while `VITE_PREVIEW_HOST` is set (see above) — do not
+  remove that `configure` hook while testing through a tunnel. This is a
+  preview-environment artifact, not an application bug.
 - **Vite config changes require a dev-server restart**: editing
   `vite.config.ts` (e.g. the proxy block) triggers Vite's "config changed,
   restarting server" behavior automatically; plain source-file edits hot-reload

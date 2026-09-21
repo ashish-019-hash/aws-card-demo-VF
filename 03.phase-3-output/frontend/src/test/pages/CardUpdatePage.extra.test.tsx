@@ -110,16 +110,12 @@ describe('CardUpdatePage (COCRDUPC) - additional coverage', () => {
     expect(await screen.findByText('Card Active Status must be Y or N')).toBeInTheDocument()
   })
 
-  // DEFECT (see ../DEFECTS.md #1): CardUpdatePage.buildDraft() builds its object with keys
-  // in the order {cvvCd, embossedName, activeStatus, expirationDate}, but the backend's
-  // CardFields DTO (and therefore the fetched `expected` snapshot) serializes keys in the
-  // order {cvvCd, embossedName, expirationDate, activeStatus}. The no-change check compares
-  // JSON.stringify(draft) === JSON.stringify(expected), which is key-order sensitive, so an
-  // untouched form incorrectly registers as "changed" and proceeds to the confirm/save step
-  // instead of showing "No change detected with respect to values fetched." This test is
-  // written to the intended (spec) behavior and is expected to fail until the comparison is
-  // made order-independent (e.g. compare individual fields instead of JSON.stringify).
-  it.fails('shows "No change detected" when validated values equal the fetched snapshot', async () => {
+  // Fixed defect (see ../DEFECTS.md #1): the "no change" comparison now uses the shared
+  // field-by-field `fieldsEqual()` helper (src/validation/rules.ts) instead of a key-order-
+  // sensitive JSON.stringify comparison, so an untouched form correctly reports no change
+  // regardless of how buildDraft()'s object literal vs. the fetched CardFields DTO order
+  // their keys.
+  it('shows "No change detected" when validated values equal the fetched snapshot', async () => {
     const user = userEvent.setup()
     await goToEdit(user)
     await user.click(screen.getByRole('button', { name: 'Enter (validate)' }))

@@ -26,7 +26,7 @@ describe('TransactionListPage (COTRN00C)', () => {
     renderPage()
     const table = await screen.findByTestId('transaction-list')
     expect(within(table).getByText('GROCERY STORE')).toBeInTheDocument()
-    expect(within(table).getByText('42.5')).toBeInTheDocument()
+    expect(within(table).getByText('42.50')).toBeInTheDocument()
   })
 
   it('shows "No transactions found." for an empty list', async () => {

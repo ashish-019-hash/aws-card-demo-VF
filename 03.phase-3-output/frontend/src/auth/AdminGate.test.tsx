@@ -16,6 +16,7 @@ function renderWithAuth(isAdmin: boolean) {
           },
           signOut: async () => {},
           isAdmin,
+          unauthorizedMessage: null,
         }}
       >
         <AdminGate screenId="COUSR00C" title="List Users">

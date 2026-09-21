@@ -2,9 +2,10 @@ import { HttpResponse, http } from 'msw'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { server } from '../server'
 import { AuthProvider, useAuth } from '../../auth/AuthContext'
+import { RequireAuth } from '../../auth/RequireAuth'
 import { api } from '../../api/client'
 
 function ProtectedScreen() {
@@ -19,13 +20,25 @@ function ProtectedScreen() {
   )
 }
 
+function SignOnScreen() {
+  const location = useLocation() as { state?: { message?: string } }
+  return (
+    <div>
+      <div>Sign On Screen</div>
+      {location.state?.message && <div>{location.state.message}</div>}
+    </div>
+  )
+}
+
 function renderApp(initialPath = '/menu') {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
       <AuthProvider>
         <Routes>
-          <Route path="/signon" element={<div>Sign On Screen</div>} />
-          <Route path="/menu" element={<ProtectedScreen />} />
+          <Route path="/signon" element={<SignOnScreen />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/menu" element={<ProtectedScreen />} />
+          </Route>
         </Routes>
       </AuthProvider>
     </MemoryRouter>,
@@ -53,7 +66,7 @@ describe('AuthContext', () => {
     expect(await screen.findByText('isAdmin: false')).toBeInTheDocument()
   })
 
-  it('redirects to /signon with the session-expired message on any 401 response', async () => {
+  it('redirects to /signon with the session-expired message on any 401 response (DEFECT-004, resolved)', async () => {
     server.use(
       http.get('/api/session', () =>
         HttpResponse.json({ authenticated: true, userId: 'USER0001', firstName: 'Reg', lastName: 'User', userType: 'U' }),
@@ -71,6 +84,7 @@ describe('AuthContext', () => {
     await waitFor(() => {
       expect(screen.getByText('Sign On Screen')).toBeInTheDocument()
     })
+    expect(await screen.findByText('Your session has expired. Please sign on again.')).toBeInTheDocument()
   })
 
   it('signOut clears the session and calls DELETE /api/session', async () => {

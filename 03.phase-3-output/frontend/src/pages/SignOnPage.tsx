@@ -5,7 +5,9 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { MessageBar } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { ApiError } from '../api/client'
-import { required, type FieldErrors } from '../validation/rules'
+import { focusFirstInvalidField, hasErrors, required, type FieldErrors } from '../validation/rules'
+
+const FIELD_ORDER = ['userId', 'password']
 
 export function SignOnPage() {
   const { signIn } = useAuth()
@@ -30,7 +32,10 @@ export function SignOnPage() {
     e.preventDefault()
     const fieldErrors = validate()
     setErrors(fieldErrors)
-    if (Object.values(fieldErrors).some(Boolean)) return
+    if (hasErrors(fieldErrors)) {
+      focusFirstInvalidField(fieldErrors, FIELD_ORDER)
+      return
+    }
 
     setSubmitting(true)
     setMessage(null)
@@ -57,23 +62,27 @@ export function SignOnPage() {
           <label htmlFor="userId">User ID</label>
           <input
             id="userId"
+            aria-invalid={Boolean(errors.userId)}
+            aria-describedby={errors.userId ? 'userId-error' : undefined}
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             maxLength={8}
             autoFocus
           />
-          <FieldError message={errors.userId} />
+          <FieldError id="userId-error" message={errors.userId} />
         </div>
         <div className="form-row">
           <label htmlFor="password">Password</label>
           <input
             id="password"
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? 'password-error' : undefined}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             maxLength={8}
           />
-          <FieldError message={errors.password} />
+          <FieldError id="password-error" message={errors.password} />
         </div>
         <div className="form-actions">
           <button type="submit" disabled={submitting}>

@@ -27,7 +27,7 @@ describe('BillPaymentPage', () => {
     await user.type(screen.getByLabelText('Account ID'), '10')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
 
-    expect(await screen.findByText('42.5')).toBeInTheDocument()
+    expect(await screen.findByText('42.50')).toBeInTheDocument()
     const payForm = screen.getByTestId('bill-pay-form')
     await user.click(within(payForm).getByRole('button', { name: 'Enter' }))
 
@@ -54,7 +54,7 @@ describe('BillPaymentPage', () => {
 
     await user.type(screen.getByLabelText('Account ID'), '10')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
-    await screen.findByText('0')
+    await screen.findByText('0.00')
 
     await user.type(screen.getByLabelText('Confirm full balance payment (Y/N)'), 'Y')
     const payForm1 = screen.getByTestId('bill-pay-form')
@@ -83,7 +83,7 @@ describe('BillPaymentPage', () => {
 
     await user.type(screen.getByLabelText('Account ID'), '10')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
-    await screen.findByText('42.5')
+    await screen.findByText('42.50')
 
     await user.type(screen.getByLabelText('Confirm full balance payment (Y/N)'), 'Y')
     const payForm2 = screen.getByTestId('bill-pay-form')

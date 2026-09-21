@@ -79,26 +79,26 @@ describe('ReportPage (CORPT00C)', () => {
     expect(screen.getByRole('button', { name: 'Enter (validate)' })).toBeInTheDocument()
   })
 
-  it('blocks confirm with "Confirm to print the report..." when confirm is blank (VR-113)', async () => {
+  it('blocks confirm with "Please confirm to print the <reportType> report..." when confirm is blank (VR-113)', async () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('radio', { name: 'Monthly' }))
     await user.click(screen.getByRole('button', { name: 'Enter (validate)' }))
     await user.click(await screen.findByRole('button', { name: 'Enter (confirm)' }))
-    expect(await screen.findByText('Confirm to print the report...')).toBeInTheDocument()
+    expect(await screen.findByText('Please confirm to print the MONTHLY report...')).toBeInTheDocument()
   })
 
-  it('blocks confirm with the invalid-value message for a non Y/N confirm (VR-114)', async () => {
+  it('blocks confirm with the interpolated invalid-value message for a non Y/N confirm (VR-114)', async () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(screen.getByRole('radio', { name: 'Monthly' }))
     await user.click(screen.getByRole('button', { name: 'Enter (validate)' }))
     await user.type(screen.getByLabelText('Confirm (Y/N)'), 'X')
     await user.click(await screen.findByRole('button', { name: 'Enter (confirm)' }))
-    expect(await screen.findByText('Invalid value. Valid values are (Y/N)...')).toBeInTheDocument()
+    expect(await screen.findByText('"X" is not a valid value to confirm...')).toBeInTheDocument()
   })
 
-  it('shows the same "Confirm to print..." info message without submitting when confirm is N', async () => {
+  it('clears the whole form and shows no message when confirm is N (CORPT00C INITIALIZE-ALL-FIELDS)', async () => {
     let submitted = false
     server.use(
       http.post('/api/reports', () => {
@@ -112,8 +112,10 @@ describe('ReportPage (CORPT00C)', () => {
     await user.click(screen.getByRole('button', { name: 'Enter (validate)' }))
     await user.type(screen.getByLabelText('Confirm (Y/N)'), 'N')
     await user.click(await screen.findByRole('button', { name: 'Enter (confirm)' }))
-    expect(await screen.findByText('Confirm to print the report...')).toBeInTheDocument()
     expect(submitted).toBe(false)
+    expect(screen.queryByRole('button', { name: 'Enter (confirm)' })).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Monthly' })).not.toBeChecked()
+    expect(screen.queryByText(/Please confirm to print/)).not.toBeInTheDocument()
   })
 
   it('submits the report and shows the success message when confirm is Y', async () => {

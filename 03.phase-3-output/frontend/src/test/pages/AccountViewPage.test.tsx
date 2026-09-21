@@ -85,7 +85,7 @@ describe('AccountViewPage (COACTVWC)', () => {
     const user = userEvent.setup()
     renderPage()
 
-    await user.type(screen.getByLabelText('Account ID'), '10')
+    await user.type(screen.getByLabelText('Account ID'), '00000000010')
     await user.click(screen.getByRole('button', { name: 'Enter' }))
 
     const detail = await screen.findByTestId('account-detail')

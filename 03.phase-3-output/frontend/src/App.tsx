@@ -76,7 +76,6 @@ function AppRoutes() {
         />
       </Route>
 
-      <Route path="/" element={<Navigate to="/signon" replace />} />
       <Route path="*" element={<Navigate to="/signon" replace />} />
     </Routes>
   )

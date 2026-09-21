@@ -71,8 +71,8 @@ test.describe('Transaction Add (COTRN02C)', () => {
 
   function validTransactionForm() {
     return {
-      typeCd: '02',
-      catCd: '5',
+      typeCd: '01',
+      catCd: '1',
       source: 'POS',
       description: 'E2E test purchase',
       amount: '12.34',

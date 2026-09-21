@@ -7,7 +7,8 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { MessageBar } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { BackLink } from '../components/BackLink'
-import { optionalNonZeroDigits, optionalNonZeroNumeric } from '../validation/rules'
+import { optionalNonZeroDigits } from '../validation/rules'
+import { formatAccountId } from '../format'
 
 export function CardListPage() {
   const [acctFilter, setAcctFilter] = useState('')
@@ -38,7 +39,6 @@ export function CardListPage() {
     } catch (e) {
       setMessage(e instanceof ApiError ? e.message : 'Unable to load cards.')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acctFilter, cardFilter])
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function CardListPage() {
   function handleSearch(e: FormEvent) {
     e.preventDefault()
     const nextErrors = {
-      acctFilter: optionalNonZeroNumeric(acctFilter, 11, 'ACCOUNT FILTER,IF SUPPLIED MUST BE A 11 DIGIT NUMBER'),
+      acctFilter: optionalNonZeroDigits(acctFilter, 11, 'ACCOUNT FILTER,IF SUPPLIED MUST BE A 11 DIGIT NUMBER'),
       cardFilter: optionalNonZeroDigits(cardFilter, 16, 'CARD ID FILTER,IF SUPPLIED MUST BE A 16 DIGIT NUMBER'),
     }
     setErrors(nextErrors)
@@ -64,13 +64,13 @@ export function CardListPage() {
       <form onSubmit={handleSearch} className="form">
         <div className="form-row">
           <label htmlFor="acctFilter">Account ID filter</label>
-          <input id="acctFilter" value={acctFilter} onChange={(e) => setAcctFilter(e.target.value)} maxLength={11} />
-          <FieldError message={errors.acctFilter} />
+          <input id="acctFilter" aria-invalid={Boolean(errors.acctFilter)} aria-describedby={errors.acctFilter ? 'acctFilter-error' : undefined} value={acctFilter} onChange={(e) => setAcctFilter(e.target.value)} maxLength={11} />
+          <FieldError id="acctFilter-error" message={errors.acctFilter} />
         </div>
         <div className="form-row">
           <label htmlFor="cardFilter">Card Number filter</label>
-          <input id="cardFilter" value={cardFilter} onChange={(e) => setCardFilter(e.target.value)} maxLength={16} />
-          <FieldError message={errors.cardFilter} />
+          <input id="cardFilter" aria-invalid={Boolean(errors.cardFilter)} aria-describedby={errors.cardFilter ? 'cardFilter-error' : undefined} value={cardFilter} onChange={(e) => setCardFilter(e.target.value)} maxLength={16} />
+          <FieldError id="cardFilter-error" message={errors.cardFilter} />
         </div>
         <div className="form-actions">
           <button type="submit">Enter</button>
@@ -90,13 +90,13 @@ export function CardListPage() {
         <tbody>
           {items.map((card) => (
             <tr key={card.cardNum}>
-              <td>{card.acctId}</td>
+              <td>{formatAccountId(card.acctId)}</td>
               <td>{card.cardNum}</td>
               <td>{card.activeStatus}</td>
               <td>{card.embossedName}</td>
               <td>
-                <Link to={`/cards/view?cardNum=${card.cardNum}`}>View</Link>{' '}
-                <Link to={`/cards/update?cardNum=${card.cardNum}`}>Update</Link>
+                <Link to={`/cards/view?cardNum=${card.cardNum}`} state={{ from: '/cards' }}>View</Link>{' '}
+                <Link to={`/cards/update?cardNum=${card.cardNum}`} state={{ from: '/cards' }}>Update</Link>
               </td>
             </tr>
           ))}

@@ -90,4 +90,56 @@ describe('CardViewPage (COCRDSLC)', () => {
     renderPage()
     expect(screen.getByRole('link', { name: 'F3 = Exit/Back' })).toHaveAttribute('href', '/menu')
   })
+
+  it('looks up by account only (no card number) and shows the single matching card detail', async () => {
+    server.use(
+      http.get('/api/cards', () =>
+        HttpResponse.json({
+          items: [{ acctId: 10, cardNum: '1111222233334444', activeStatus: 'Y', embossedName: 'JOHN Q PUBLIC' }],
+          hasNext: false,
+          hasPrevious: false,
+        }),
+      ),
+      http.get('/api/cards/:cardNum', () => HttpResponse.json(detail)),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await user.type(screen.getByLabelText('Account ID'), '00000000010')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    const grid = await screen.findByTestId('card-detail')
+    expect(grid).toHaveTextContent('1111222233334444')
+    expect(grid).toHaveTextContent('JOHN Q PUBLIC')
+  })
+
+  it('looks up by account only and lists all matches when the account has more than one card', async () => {
+    server.use(
+      http.get('/api/cards', () =>
+        HttpResponse.json({
+          items: [
+            { acctId: 10, cardNum: '1111222233334444', activeStatus: 'Y', embossedName: 'JOHN Q PUBLIC' },
+            { acctId: 10, cardNum: '5555666677778888', activeStatus: 'Y', embossedName: 'JOHN Q PUBLIC' },
+          ],
+          hasNext: false,
+          hasPrevious: false,
+        }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await user.type(screen.getByLabelText('Account ID'), '00000000010')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    const table = await screen.findByTestId('card-matches')
+    expect(table).toHaveTextContent('1111222233334444')
+    expect(table).toHaveTextContent('5555666677778888')
+    expect(screen.queryByTestId('card-detail')).not.toBeInTheDocument()
+  })
+
+  it('looks up by account only and shows the not-found message when the account has no cards', async () => {
+    server.use(http.get('/api/cards', () => HttpResponse.json({ items: [], hasNext: false, hasPrevious: false })))
+    const user = userEvent.setup()
+    renderPage()
+    await user.type(screen.getByLabelText('Account ID'), '00000000010')
+    await user.click(screen.getByRole('button', { name: 'Enter' }))
+    expect(await screen.findByText('Did not find cards for this search condition')).toBeInTheDocument()
+  })
 })

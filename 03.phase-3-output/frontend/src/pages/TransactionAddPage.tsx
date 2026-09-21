@@ -3,14 +3,17 @@ import { endpoints } from '../api/endpoints'
 import { ApiError } from '../api/client'
 import type { TransactionAddRequest } from '../api/types'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { MessageBar } from '../components/MessageBar'
+import { MessageBar, type Message } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { BackLink } from '../components/BackLink'
+import { formatAmount, formatDateOnly } from '../format'
 import {
+  dateFormat,
+  focusFirstInvalidField,
+  hasErrors,
   isBlank,
   isNumeric,
   required,
-  dateFormat,
   validCalendarDate,
   yesNoIfSupplied,
   type FieldErrors,
@@ -49,6 +52,12 @@ const initialForm: FormState = {
   merchantZip: '',
   confirm: '',
 }
+
+const KNOWN_TRANSACTION_FIELDS: readonly string[] = [
+  'accountId', 'cardNum', 'typeCd', 'catCd', 'source', 'description', 'amount',
+  'origDate', 'procDate', 'merchantId', 'merchantName', 'merchantCity', 'merchantZip',
+]
+const FIELD_ORDER = KNOWN_TRANSACTION_FIELDS
 
 function validate(f: FormState): FieldErrors {
   const errors: FieldErrors = {}
@@ -93,7 +102,7 @@ function validate(f: FormState): FieldErrors {
 export function TransactionAddPage() {
   const [form, setForm] = useState<FormState>(initialForm)
   const [errors, setErrors] = useState<FieldErrors>({})
-  const [message, setMessage] = useState<{ kind: 'error' | 'success' | 'info'; text: string } | null>(null)
+  const [message, setMessage] = useState<Message | null>(null)
   const [validated, setValidated] = useState(false)
 
   function update<K extends keyof FormState>(key: K, value: string) {
@@ -105,6 +114,14 @@ export function TransactionAddPage() {
     // Confirm is entered *after* validation succeeds; typing it must not clear the
     // "validated" state that unlocks the confirm-gated submit (VR-094).
     setForm((prev) => ({ ...prev, confirm: value }))
+  }
+
+  // PF4 (COTRN02C CLEAR-CURRENT-SCREEN -> INITIALIZE-ALL-FIELDS): reset the whole screen.
+  function handleClear() {
+    setForm(initialForm)
+    setErrors({})
+    setMessage(null)
+    setValidated(false)
   }
 
   async function handleCopyLast() {
@@ -120,9 +137,9 @@ export function TransactionAddPage() {
         catCd: last.catCd != null ? String(last.catCd) : '',
         source: last.source ?? '',
         description: last.description ?? '',
-        amount: last.amount != null ? String(last.amount) : '',
-        origDate: last.origTs ?? '',
-        procDate: last.procTs ?? '',
+        amount: last.amount != null ? formatAmount(last.amount) : '',
+        origDate: last.origTs ? formatDateOnly(last.origTs) : '',
+        procDate: last.procTs ? formatDateOnly(last.procTs) : '',
         merchantId: last.merchantId != null ? String(last.merchantId) : '',
         merchantName: last.merchantName ?? '',
         merchantCity: last.merchantCity ?? '',
@@ -139,9 +156,10 @@ export function TransactionAddPage() {
     e.preventDefault()
     const fieldErrors = validate(form)
     setErrors(fieldErrors)
-    if (Object.values(fieldErrors).some(Boolean)) {
+    if (hasErrors(fieldErrors)) {
       setMessage(null)
       setValidated(false)
+      focusFirstInvalidField(fieldErrors, FIELD_ORDER)
       return
     }
     setMessage({ kind: 'info', text: 'Transaction validated. Set Confirm to Y and press Enter to add.' })
@@ -190,12 +208,9 @@ export function TransactionAddPage() {
       setValidated(false)
     } catch (e) {
       if (e instanceof ApiError && e.status === 400) {
-        const fieldErrors: FieldErrors = {}
-        e.errors.forEach((fe) => {
-          fieldErrors[fe.field] = fe.message
-        })
+        const { fieldErrors, unmapped } = e.fieldErrors(KNOWN_TRANSACTION_FIELDS)
         setErrors(fieldErrors)
-        setMessage({ kind: 'error', text: e.message })
+        setMessage({ kind: 'error', text: unmapped.length ? `${e.message} ${unmapped.join(' ')}` : e.message })
       } else {
         setMessage({ kind: 'error', text: e instanceof ApiError ? e.message : 'Unable to add transaction.' })
       }
@@ -211,79 +226,82 @@ export function TransactionAddPage() {
       <form onSubmit={handleSubmit} className="form" data-testid="transaction-add-form">
         <div className="form-row">
           <label htmlFor="accountId">Account ID</label>
-          <input id="accountId" value={form.accountId} onChange={(e) => update('accountId', e.target.value)} />
-          <FieldError message={errors.accountId} />
+          <input id="accountId" aria-invalid={Boolean(errors.accountId)} aria-describedby={errors.accountId ? 'accountId-error' : undefined} value={form.accountId} onChange={(e) => update('accountId', e.target.value)} />
+          <FieldError id="accountId-error" message={errors.accountId} />
         </div>
         <div className="form-row">
           <label htmlFor="cardNum">Card Number</label>
-          <input id="cardNum" value={form.cardNum} onChange={(e) => update('cardNum', e.target.value)} />
-          <FieldError message={errors.cardNum} />
+          <input id="cardNum" aria-invalid={Boolean(errors.cardNum)} aria-describedby={errors.cardNum ? 'cardNum-error' : undefined} value={form.cardNum} onChange={(e) => update('cardNum', e.target.value)} />
+          <FieldError id="cardNum-error" message={errors.cardNum} />
           <button type="button" onClick={() => void handleCopyLast()}>
             F5 = Copy Last Transaction
           </button>
         </div>
         <div className="form-row">
           <label htmlFor="typeCd">Type Code</label>
-          <input id="typeCd" value={form.typeCd} onChange={(e) => update('typeCd', e.target.value)} />
-          <FieldError message={errors.typeCd} />
+          <input id="typeCd" aria-invalid={Boolean(errors.typeCd)} aria-describedby={errors.typeCd ? 'typeCd-error' : undefined} value={form.typeCd} onChange={(e) => update('typeCd', e.target.value)} />
+          <FieldError id="typeCd-error" message={errors.typeCd} />
         </div>
         <div className="form-row">
           <label htmlFor="catCd">Category Code</label>
-          <input id="catCd" value={form.catCd} onChange={(e) => update('catCd', e.target.value)} />
-          <FieldError message={errors.catCd} />
+          <input id="catCd" aria-invalid={Boolean(errors.catCd)} aria-describedby={errors.catCd ? 'catCd-error' : undefined} value={form.catCd} onChange={(e) => update('catCd', e.target.value)} />
+          <FieldError id="catCd-error" message={errors.catCd} />
         </div>
         <div className="form-row">
           <label htmlFor="source">Source</label>
-          <input id="source" value={form.source} onChange={(e) => update('source', e.target.value)} />
-          <FieldError message={errors.source} />
+          <input id="source" aria-invalid={Boolean(errors.source)} aria-describedby={errors.source ? 'source-error' : undefined} value={form.source} onChange={(e) => update('source', e.target.value)} />
+          <FieldError id="source-error" message={errors.source} />
         </div>
         <div className="form-row">
           <label htmlFor="description">Description</label>
-          <input id="description" value={form.description} onChange={(e) => update('description', e.target.value)} />
-          <FieldError message={errors.description} />
+          <input id="description" aria-invalid={Boolean(errors.description)} aria-describedby={errors.description ? 'description-error' : undefined} value={form.description} onChange={(e) => update('description', e.target.value)} />
+          <FieldError id="description-error" message={errors.description} />
         </div>
         <div className="form-row">
           <label htmlFor="amount">Amount</label>
-          <input id="amount" value={form.amount} onChange={(e) => update('amount', e.target.value)} />
-          <FieldError message={errors.amount} />
+          <input id="amount" aria-invalid={Boolean(errors.amount)} aria-describedby={errors.amount ? 'amount-error' : undefined} value={form.amount} onChange={(e) => update('amount', e.target.value)} />
+          <FieldError id="amount-error" message={errors.amount} />
         </div>
         <div className="form-row">
           <label htmlFor="origDate">Orig Date (YYYY-MM-DD)</label>
-          <input id="origDate" value={form.origDate} onChange={(e) => update('origDate', e.target.value)} />
-          <FieldError message={errors.origDate} />
+          <input id="origDate" aria-invalid={Boolean(errors.origDate)} aria-describedby={errors.origDate ? 'origDate-error' : undefined} value={form.origDate} onChange={(e) => update('origDate', e.target.value)} />
+          <FieldError id="origDate-error" message={errors.origDate} />
         </div>
         <div className="form-row">
           <label htmlFor="procDate">Proc Date (YYYY-MM-DD)</label>
-          <input id="procDate" value={form.procDate} onChange={(e) => update('procDate', e.target.value)} />
-          <FieldError message={errors.procDate} />
+          <input id="procDate" aria-invalid={Boolean(errors.procDate)} aria-describedby={errors.procDate ? 'procDate-error' : undefined} value={form.procDate} onChange={(e) => update('procDate', e.target.value)} />
+          <FieldError id="procDate-error" message={errors.procDate} />
         </div>
         <div className="form-row">
           <label htmlFor="merchantId">Merchant ID</label>
-          <input id="merchantId" value={form.merchantId} onChange={(e) => update('merchantId', e.target.value)} />
-          <FieldError message={errors.merchantId} />
+          <input id="merchantId" aria-invalid={Boolean(errors.merchantId)} aria-describedby={errors.merchantId ? 'merchantId-error' : undefined} value={form.merchantId} onChange={(e) => update('merchantId', e.target.value)} />
+          <FieldError id="merchantId-error" message={errors.merchantId} />
         </div>
         <div className="form-row">
           <label htmlFor="merchantName">Merchant Name</label>
-          <input id="merchantName" value={form.merchantName} onChange={(e) => update('merchantName', e.target.value)} />
-          <FieldError message={errors.merchantName} />
+          <input id="merchantName" aria-invalid={Boolean(errors.merchantName)} aria-describedby={errors.merchantName ? 'merchantName-error' : undefined} value={form.merchantName} onChange={(e) => update('merchantName', e.target.value)} />
+          <FieldError id="merchantName-error" message={errors.merchantName} />
         </div>
         <div className="form-row">
           <label htmlFor="merchantCity">Merchant City</label>
-          <input id="merchantCity" value={form.merchantCity} onChange={(e) => update('merchantCity', e.target.value)} />
-          <FieldError message={errors.merchantCity} />
+          <input id="merchantCity" aria-invalid={Boolean(errors.merchantCity)} aria-describedby={errors.merchantCity ? 'merchantCity-error' : undefined} value={form.merchantCity} onChange={(e) => update('merchantCity', e.target.value)} />
+          <FieldError id="merchantCity-error" message={errors.merchantCity} />
         </div>
         <div className="form-row">
           <label htmlFor="merchantZip">Merchant Zip</label>
-          <input id="merchantZip" value={form.merchantZip} onChange={(e) => update('merchantZip', e.target.value)} />
-          <FieldError message={errors.merchantZip} />
+          <input id="merchantZip" aria-invalid={Boolean(errors.merchantZip)} aria-describedby={errors.merchantZip ? 'merchantZip-error' : undefined} value={form.merchantZip} onChange={(e) => update('merchantZip', e.target.value)} />
+          <FieldError id="merchantZip-error" message={errors.merchantZip} />
         </div>
         <div className="form-row">
           <label htmlFor="confirm">Confirm (Y/N)</label>
-          <input id="confirm" value={form.confirm} maxLength={1} onChange={(e) => updateConfirm(e.target.value)} />
-          <FieldError message={errors.confirm} />
+          <input id="confirm" aria-invalid={Boolean(errors.confirm)} aria-describedby={errors.confirm ? 'confirm-error' : undefined} value={form.confirm} maxLength={1} onChange={(e) => updateConfirm(e.target.value)} />
+          <FieldError id="confirm-error" message={errors.confirm} />
         </div>
         <div className="form-actions">
           <button type="submit">{validated ? 'Enter (confirm)' : 'Enter (validate)'}</button>
+          <button type="button" onClick={handleClear}>
+            F4 = Clear
+          </button>
         </div>
       </form>
       <BackLink to="/menu" />

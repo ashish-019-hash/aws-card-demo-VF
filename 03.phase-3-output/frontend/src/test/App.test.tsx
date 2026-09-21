@@ -85,4 +85,18 @@ describe('App routing/gating (App.tsx)', () => {
     visit('/')
     expect(await screen.findByRole('heading', { name: 'Sign On' })).toBeInTheDocument()
   })
+
+  it('redirects an admin user visiting /menu straight to the Admin Menu', async () => {
+    mockSession(true, 'A')
+    server.use(http.get('/api/menu', () => HttpResponse.json({ userType: 'A', options: [] })))
+    visit('/menu')
+    expect(await screen.findByRole('heading', { name: 'Admin Menu' })).toBeInTheDocument()
+  })
+
+  it('redirects a regular user visiting /admin straight to the Main Menu', async () => {
+    mockSession(true, 'U')
+    server.use(http.get('/api/menu', () => HttpResponse.json({ userType: 'U', options: [] })))
+    visit('/admin')
+    expect(await screen.findByRole('heading', { name: 'Main Menu' })).toBeInTheDocument()
+  })
 })

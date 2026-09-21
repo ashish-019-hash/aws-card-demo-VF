@@ -56,7 +56,7 @@ of coverage, unmodified.
 | File | Coverage | STORY | VR |
 |---|---|---|---|
 | `src/pages/CardUpdatePage.test.tsx` (pre-existing) | search→edit→validate→confirm→save happy path | STORY-024, 025 | VR-067, VR-068 |
-| `src/test/pages/CardUpdatePage.extra.test.tsx` (13 tests, 1 `it.fails`) | blank card-number search block, backend lookup error, expiry-month boundary (0/13 blocked, 1/12 accepted), expiry-year boundary (1949/2100 blocked), invalid active-status block, **no-change-detected (`it.fails` — Defect #1, see `DEFECTS.md`)**, F12=Cancel reverts, 400 field-error mapping | STORY-024, 025, 026 | VR-067, VR-068 |
+| `src/test/pages/CardUpdatePage.extra.test.tsx` (13 tests) | blank card-number search block, backend lookup error, expiry-month boundary (0/13 blocked, 1/12 accepted), expiry-year boundary (1949/2100 blocked), invalid active-status block, no-change-detected (Defect #1, resolved — see `DEFECTS.md`), F12=Cancel reverts, 400 field-error mapping | STORY-024, 025, 026 | VR-067, VR-068 |
 
 ## Transaction List — COTRN00C (`CT00`)
 
@@ -136,5 +136,5 @@ associated `<label>`).
 ## Totals
 
 - Test files: 29 (22 under `src/test/`, 7 pre-existing outside `src/test/`)
-- Tests: 243 (242 passing, 1 `it.fails` — see `DEFECTS.md` Defect #1)
+- Tests: 256 (all passing; Defect #1 in `DEFECTS.md` is resolved and its test now passes normally)
 - Baseline before this task: 7 files / 42 tests (all pre-existing, outside `src/test/`)

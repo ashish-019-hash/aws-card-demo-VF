@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { endpoints } from '../api/endpoints'
 import { ApiError } from '../api/client'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { MessageBar } from '../components/MessageBar'
+import { MessageBar, type Message } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { BackLink } from '../components/BackLink'
-import { required, userType, type FieldErrors } from '../validation/rules'
+import { focusFirstInvalidField, hasErrors, required, userType, type FieldErrors } from '../validation/rules'
+
+const KNOWN_USER_FIELDS: readonly string[] = ['userId', 'firstName', 'lastName', 'password', 'userType']
+const FIELD_ORDER = ['userId', 'firstName', 'lastName', 'password', 'userType']
 
 export function UserAddPage() {
   const navigate = useNavigate()
@@ -16,7 +19,7 @@ export function UserAddPage() {
   const [password, setPassword] = useState('')
   const [type, setType] = useState('')
   const [errors, setErrors] = useState<FieldErrors>({})
-  const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string } | null>(null)
+  const [message, setMessage] = useState<Message | null>(null)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -29,7 +32,10 @@ export function UserAddPage() {
       userType: required(type, 'User Type can NOT be empty...') ?? userType(type, 'User Type must be A or U'),
     }
     setErrors(fieldErrors)
-    if (Object.values(fieldErrors).some(Boolean)) return
+    if (hasErrors(fieldErrors)) {
+      focusFirstInvalidField(fieldErrors, FIELD_ORDER)
+      return
+    }
     try {
       await endpoints.createUser({
         userId: userId.trim(),
@@ -42,11 +48,10 @@ export function UserAddPage() {
       setTimeout(() => navigate('/users'), 800)
     } catch (e2) {
       if (e2 instanceof ApiError && e2.status === 400) {
-        const be: FieldErrors = {}
-        e2.errors.forEach((fe) => {
-          be[fe.field] = fe.message
-        })
-        setErrors(be)
+        const { fieldErrors, unmapped } = e2.fieldErrors(KNOWN_USER_FIELDS)
+        setErrors(fieldErrors)
+        setMessage({ kind: 'error', text: unmapped.length ? `${e2.message} ${unmapped.join(' ')}` : e2.message })
+        return
       }
       setMessage({ kind: 'error', text: e2 instanceof ApiError ? e2.message : 'Unable to add user.' })
     }
@@ -59,28 +64,28 @@ export function UserAddPage() {
       <form onSubmit={handleSubmit} className="form" data-testid="user-add-form">
         <div className="form-row">
           <label htmlFor="userId">User ID</label>
-          <input id="userId" value={userId} onChange={(e) => setUserId(e.target.value)} maxLength={8} />
-          <FieldError message={errors.userId} />
+          <input id="userId" aria-invalid={Boolean(errors.userId)} aria-describedby={errors.userId ? 'userId-error' : undefined} value={userId} onChange={(e) => setUserId(e.target.value)} maxLength={8} />
+          <FieldError id="userId-error" message={errors.userId} />
         </div>
         <div className="form-row">
           <label htmlFor="firstName">First Name</label>
-          <input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-          <FieldError message={errors.firstName} />
+          <input id="firstName" aria-invalid={Boolean(errors.firstName)} aria-describedby={errors.firstName ? 'firstName-error' : undefined} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          <FieldError id="firstName-error" message={errors.firstName} />
         </div>
         <div className="form-row">
           <label htmlFor="lastName">Last Name</label>
-          <input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          <FieldError message={errors.lastName} />
+          <input id="lastName" aria-invalid={Boolean(errors.lastName)} aria-describedby={errors.lastName ? 'lastName-error' : undefined} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          <FieldError id="lastName-error" message={errors.lastName} />
         </div>
         <div className="form-row">
           <label htmlFor="password">Password</label>
-          <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={8} />
-          <FieldError message={errors.password} />
+          <input id="password" aria-invalid={Boolean(errors.password)} aria-describedby={errors.password ? 'password-error' : undefined} type="password" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={8} />
+          <FieldError id="password-error" message={errors.password} />
         </div>
         <div className="form-row">
           <label htmlFor="userType">User Type (A/U)</label>
-          <input id="userType" value={type} maxLength={1} onChange={(e) => setType(e.target.value)} />
-          <FieldError message={errors.userType} />
+          <input id="userType" aria-invalid={Boolean(errors.userType)} aria-describedby={errors.userType ? 'userType-error' : undefined} value={type} maxLength={1} onChange={(e) => setType(e.target.value)} />
+          <FieldError id="userType-error" message={errors.userType} />
         </div>
         <div className="form-actions">
           <button type="submit">F5 = Save</button>

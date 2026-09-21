@@ -3,12 +3,15 @@ import { endpoints } from '../api/endpoints'
 import { ApiError } from '../api/client'
 import type { ReportRequest } from '../api/types'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { MessageBar } from '../components/MessageBar'
+import { MessageBar, type Message } from '../components/MessageBar'
 import { FieldError } from '../components/FieldError'
 import { BackLink } from '../components/BackLink'
-import { dateFormat, isBlank, validCalendarDate, yesNoIfSupplied, type FieldErrors } from '../validation/rules'
+import { dateFormat, focusFirstInvalidField, hasErrors, isBlank, required, validCalendarDate, type FieldErrors } from '../validation/rules'
 
 type ReportType = 'MONTHLY' | 'YEARLY' | 'CUSTOM'
+
+const KNOWN_REPORT_FIELDS: readonly string[] = ['reportType', 'startDate', 'endDate', 'confirm']
+const VALIDATE_FIELD_ORDER = ['startDate', 'endDate']
 
 export function ReportPage() {
   const [reportType, setReportType] = useState<ReportType | ''>('')
@@ -16,16 +19,14 @@ export function ReportPage() {
   const [endDate, setEndDate] = useState('')
   const [confirm, setConfirm] = useState('')
   const [errors, setErrors] = useState<FieldErrors>({})
-  const [message, setMessage] = useState<{ kind: 'error' | 'success' | 'info'; text: string } | null>(null)
+  const [message, setMessage] = useState<Message | null>(null)
   const [validated, setValidated] = useState(false)
 
   function handleValidate(e: FormEvent) {
     e.preventDefault()
     const nextErrors: FieldErrors = {}
     // VR-098
-    if (!reportType) {
-      nextErrors.reportType = 'Select a report type to print report...'
-    }
+    nextErrors.reportType = required(reportType, 'Select a report type to print report...')
     if (reportType === 'CUSTOM') {
       // VR-099/VR-111 (start), VR-111/112 mirrored for end date
       nextErrors.startDate =
@@ -38,8 +39,9 @@ export function ReportPage() {
         validCalendarDate(endDate, 'End Date - Not a valid date...')
     }
     setErrors(nextErrors)
-    if (Object.values(nextErrors).some(Boolean)) {
+    if (hasErrors(nextErrors)) {
       setValidated(false)
+      focusFirstInvalidField(nextErrors, VALIDATE_FIELD_ORDER)
       return
     }
     setMessage({ kind: 'info', text: 'Report request validated. Set Confirm to Y and press Enter to submit.' })
@@ -52,16 +54,27 @@ export function ReportPage() {
       handleValidate(e)
       return
     }
-    // VR-113/VR-114
-    const confirmError = isBlank(confirm)
-      ? 'Confirm to print the report...'
-      : yesNoIfSupplied(confirm, 'Invalid value. Valid values are (Y/N)...')
-    if (confirmError) {
-      setErrors((prev) => ({ ...prev, confirm: confirmError }))
+    // VR-113/VR-114 (CORPT00C SUBMIT-JOB-TO-INTRDR): the confirm-gate messages interpolate
+    // the selected report type / the entered value, and an explicit "N" clears the whole
+    // screen (INITIALIZE-ALL-FIELDS) rather than showing any message.
+    if (isBlank(confirm)) {
+      setErrors((prev) => ({ ...prev, confirm: `Please confirm to print the ${reportType} report...` }))
+      document.getElementById('confirm')?.focus()
       return
     }
     if (/^n$/i.test(confirm.trim())) {
-      setMessage({ kind: 'info', text: 'Confirm to print the report...' })
+      setReportType('')
+      setStartDate('')
+      setEndDate('')
+      setConfirm('')
+      setErrors({})
+      setMessage(null)
+      setValidated(false)
+      return
+    }
+    if (!/^[Yy]$/.test(confirm.trim())) {
+      setErrors((prev) => ({ ...prev, confirm: `"${confirm.trim()}" is not a valid value to confirm...` }))
+      document.getElementById('confirm')?.focus()
       return
     }
     const payload: ReportRequest = {
@@ -80,12 +93,9 @@ export function ReportPage() {
       setConfirm('')
     } catch (e2) {
       if (e2 instanceof ApiError && e2.status === 400) {
-        const fieldErrors: FieldErrors = {}
-        e2.errors.forEach((fe) => {
-          fieldErrors[fe.field] = fe.message
-        })
+        const { fieldErrors, unmapped } = e2.fieldErrors(KNOWN_REPORT_FIELDS)
         setErrors(fieldErrors)
-        setMessage({ kind: 'error', text: e2.message })
+        setMessage({ kind: 'error', text: unmapped.length ? `${e2.message} ${unmapped.join(' ')}` : e2.message })
       } else {
         setMessage({ kind: 'error', text: e2 instanceof ApiError ? e2.message : 'Unable to submit report.' })
       }
@@ -105,6 +115,8 @@ export function ReportPage() {
               type="radio"
               name="reportType"
               checked={reportType === 'MONTHLY'}
+              aria-invalid={Boolean(errors.reportType)}
+              aria-describedby={errors.reportType ? 'reportType-error' : undefined}
               onChange={() => {
                 setReportType('MONTHLY')
                 setValidated(false)
@@ -117,6 +129,8 @@ export function ReportPage() {
               type="radio"
               name="reportType"
               checked={reportType === 'YEARLY'}
+              aria-invalid={Boolean(errors.reportType)}
+              aria-describedby={errors.reportType ? 'reportType-error' : undefined}
               onChange={() => {
                 setReportType('YEARLY')
                 setValidated(false)
@@ -129,6 +143,8 @@ export function ReportPage() {
               type="radio"
               name="reportType"
               checked={reportType === 'CUSTOM'}
+              aria-invalid={Boolean(errors.reportType)}
+              aria-describedby={errors.reportType ? 'reportType-error' : undefined}
               onChange={() => {
                 setReportType('CUSTOM')
                 setValidated(false)
@@ -136,7 +152,7 @@ export function ReportPage() {
             />
             Custom
           </label>
-          <FieldError message={errors.reportType} />
+          <FieldError id="reportType-error" message={errors.reportType} />
         </div>
         {reportType === 'CUSTOM' && (
           <>
@@ -144,25 +160,29 @@ export function ReportPage() {
               <label htmlFor="startDate">Start Date (YYYY-MM-DD)</label>
               <input
                 id="startDate"
+                aria-invalid={Boolean(errors.startDate)}
+                aria-describedby={errors.startDate ? 'startDate-error' : undefined}
                 value={startDate}
                 onChange={(e) => {
                   setStartDate(e.target.value)
                   setValidated(false)
                 }}
               />
-              <FieldError message={errors.startDate} />
+              <FieldError id="startDate-error" message={errors.startDate} />
             </div>
             <div className="form-row">
               <label htmlFor="endDate">End Date (YYYY-MM-DD)</label>
               <input
                 id="endDate"
+                aria-invalid={Boolean(errors.endDate)}
+                aria-describedby={errors.endDate ? 'endDate-error' : undefined}
                 value={endDate}
                 onChange={(e) => {
                   setEndDate(e.target.value)
                   setValidated(false)
                 }}
               />
-              <FieldError message={errors.endDate} />
+              <FieldError id="endDate-error" message={errors.endDate} />
             </div>
           </>
         )}
@@ -170,11 +190,13 @@ export function ReportPage() {
           <label htmlFor="confirm">Confirm (Y/N)</label>
           <input
             id="confirm"
+            aria-invalid={Boolean(errors.confirm)}
+            aria-describedby={errors.confirm ? 'confirm-error' : undefined}
             value={confirm}
             maxLength={1}
             onChange={(e) => setConfirm(e.target.value)}
           />
-          <FieldError message={errors.confirm} />
+          <FieldError id="confirm-error" message={errors.confirm} />
         </div>
         <div className="form-actions">
           <button type="submit">{validated ? 'Enter (confirm)' : 'Enter (validate)'}</button>

@@ -23,7 +23,15 @@ export function isNumeric(value: string): boolean {
   return /^\d+$/.test(value)
 }
 
-/** VR-013/VR-054/VR-055/etc-style "must be numeric and non-zero, N digits" check. */
+/**
+ * VR-013/VR-054/VR-055/VR-006/VR-095-style "must be numeric and non-zero, exactly N
+ * digits" check. Also the account-id validator: the legacy screens' BMS field width fixes
+ * account numbers at exactly 11 digits, and the real backend accepts zero-padded numeric
+ * ids identically to their bare-number form (e.g. `00000000010` and `10` both resolve to
+ * account 10), so the legacy exact-length rule is enforced client-side and the (already
+ * zero-padded) string the user typed is sent through unchanged — see README "Backend
+ * deviations".
+ */
 export function nonZeroDigits(value: string | null | undefined, length: number, message: string): string | undefined {
   if (isBlank(value)) return message
   const v = value!.trim()
@@ -41,32 +49,6 @@ export function optionalNonZeroDigits(
   return nonZeroDigits(value, length, message)
 }
 
-/**
- * Account ID lookups (VR-005/006/007/008/054/055/072/095): the legacy screens' BMS field
- * width fixes the account number at exactly 11 digits, but this backend assigns accounts a
- * plain auto-incrementing `Long` id (its real seed data uses ids like 2, 10, 27, 50 —
- * nowhere near 11 digits) and does not itself enforce an 11-digit format on
- * GET/PUT /api/accounts/{id}. Enforcing the legacy fixed width client-side would make every
- * real account unreachable, so this mirrors the *intent* (numeric, non-zero, up to the
- * legacy field's max width) without the exact-length requirement.
- */
-export function nonZeroNumeric(value: string | null | undefined, maxLength: number, message: string): string | undefined {
-  if (isBlank(value)) return message
-  const v = value!.trim()
-  if (!isNumeric(v) || v.length > maxLength || Number(v) === 0) return message
-  return undefined
-}
-
-/** Optional variant of nonZeroNumeric: blank is fine, but if supplied it must be valid. */
-export function optionalNonZeroNumeric(
-  value: string | null | undefined,
-  maxLength: number,
-  message: string,
-): string | undefined {
-  if (isBlank(value)) return undefined
-  return nonZeroNumeric(value, maxLength, message)
-}
-
 
 /** VR-011/VR-022/VR-024/etc.: alphabetic (and spaces) only, required. */
 export function alphaRequired(value: string | null | undefined, message: string): string | undefined {
@@ -80,10 +62,19 @@ export function alphaOptional(value: string | null | undefined, message: string)
   return /^[A-Za-z ]+$/.test(value!) ? undefined : message
 }
 
-/** VR-010/VR-015/VR-030c/VR-066: must be supplied and be Y or N. */
-export function yesNo(value: string | null | undefined, message: string): string | undefined {
-  if (isBlank(value)) return message
-  return /^[YyNn]$/.test(value!) ? undefined : message
+/**
+ * VR-010/VR-015/VR-030c/VR-066: must be supplied and be Y or N. The legacy screens show a
+ * distinct message for "blank" vs. "supplied but not Y/N" (e.g. VR-010's
+ * "Account Status must be supplied." vs "Account Status must be Y or N."); `invalidMessage`
+ * defaults to `blankMessage` for call sites that only have one legacy message text.
+ */
+export function yesNo(
+  value: string | null | undefined,
+  blankMessage: string,
+  invalidMessage: string = blankMessage,
+): string | undefined {
+  if (isBlank(value)) return blankMessage
+  return /^[YyNn]$/.test(value!) ? undefined : invalidMessage
 }
 
 /** VR-114/VR-096: confirm value must be Y or N (blank handled separately by the caller). */
@@ -96,20 +87,6 @@ export function yesNoIfSupplied(value: string | null | undefined, message: strin
 export function signedAmount(value: string | null | undefined, message: string): string | undefined {
   if (isBlank(value)) return message
   return /^-?\d+(\.\d{1,2})?$/.test(value!.trim()) ? undefined : message
-}
-
-/**
- * VR-088: legacy fixed-width mask is sign + 8 digits + '.' + 2 digits over a BMS text
- * field; the REST API takes a JSON number instead, so this mirrors the *intent* (a
- * plain decimal amount, at most 2 decimal places, magnitude under 10^8) rather than the
- * positional string check.
- */
-export function amountFormat(value: number | null | undefined, message: string): string | undefined {
-  if (value === null || value === undefined || Number.isNaN(value)) return message
-  if (Math.abs(value) >= 100000000) return message
-  const decimals = value.toString().split('.')[1]
-  if (decimals && decimals.length > 2) return message
-  return undefined
 }
 
 /** VR-089/VR-090: date must match YYYY-MM-DD positionally. */
@@ -176,25 +153,46 @@ export function ssnAreaValid(value: string | null | undefined, message: string):
   return n === 0 || n === 666 || (n >= 900 && n <= 999) ? message : undefined
 }
 
-/** VR-046/VR-050/VR-053: numeric part must not be zero. */
-export function nonZero(value: string | null | undefined, message: string): string | undefined {
-  if (isBlank(value)) return undefined
-  return Number(value) === 0 ? message : undefined
-}
-
 /** VR-118/VR-120 etc.: user type must be A or U. */
 export function userType(value: string | null | undefined, message: string): string | undefined {
   if (isBlank(value)) return message
   return /^[AaUu]$/.test(value!) ? undefined : message
 }
 
-/** VR-003/VR-004: menu option number must be numeric, non-zero, and within range. */
-export function menuOption(value: string, max: number, message: string): string | undefined {
-  if (isBlank(value) || !isNumeric(value.trim())) return message
-  const n = Number(value.trim())
-  return n >= 1 && n <= max ? undefined : message
-}
-
 export function hasErrors(errors: FieldErrors): boolean {
   return Object.values(errors).some((v) => v !== undefined)
+}
+
+/**
+ * Accessibility helper (review Finding 10): after a failed validate/submit, move focus to
+ * the first invalid field (in on-screen order) so screen-reader/keyboard users land on the
+ * error instead of having to hunt for it. `order` should list field ids in the same order
+ * they appear on the form; the first one present in `errors` with a message wins.
+ */
+export function focusFirstInvalidField(errors: FieldErrors, order: readonly string[]): void {
+  for (const field of order) {
+    if (!errors[field]) continue
+    const el = document.getElementById(field)
+    if (el) {
+      el.focus()
+      return
+    }
+  }
+}
+
+/**
+ * Field-by-field equality check for "no change detected" comparisons (BR-009/BR-015 style
+ * confirm gates on the Card/Account update screens). Deliberately does NOT rely on
+ * `JSON.stringify`, which is key-order sensitive and can report two objects with identical
+ * values as "changed" if their keys were built in different order (see unit-test DEFECTS.md
+ * #1 for the CardUpdatePage bug this replaces).
+ */
+export function fieldsEqual<T extends object>(a: T, b: T): boolean {
+  const aRecord = a as Record<string, unknown>
+  const bRecord = b as Record<string, unknown>
+  const keys = new Set([...Object.keys(aRecord), ...Object.keys(bRecord)])
+  for (const key of keys) {
+    if (aRecord[key] !== bRecord[key]) return false
+  }
+  return true
 }

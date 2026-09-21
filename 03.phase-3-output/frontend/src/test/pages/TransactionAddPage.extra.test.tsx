@@ -202,6 +202,36 @@ describe('TransactionAddPage (COTRN02C) - additional coverage', () => {
     expect(screen.getByLabelText('Amount')).toHaveValue('9.99')
   })
 
+  it('F5 = Copy Last Transaction truncates full timestamps to YYYY-MM-DD and formats amount to 2 decimals', async () => {
+    server.use(
+      http.get('/api/transactions/last', () =>
+        HttpResponse.json({
+          tranId: '1',
+          cardNum: '1111222233334444',
+          typeCd: '02',
+          catCd: 5,
+          source: 'ONLINE',
+          description: 'STREAMING SVC',
+          amount: 10,
+          origTs: '2024-05-01 10:15:30.000000',
+          procTs: '2024-05-02 11:00:00.000000',
+          merchantId: 321,
+          merchantName: 'STREAM CO',
+          merchantCity: 'WEBTOWN',
+          merchantZip: '54321',
+        }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await user.type(screen.getByLabelText('Card Number'), '1111222233334444')
+    await user.click(screen.getByRole('button', { name: 'F5 = Copy Last Transaction' }))
+    expect(await screen.findByText('Last transaction details copied.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Orig Date (YYYY-MM-DD)')).toHaveValue('2024-05-01')
+    expect(screen.getByLabelText('Proc Date (YYYY-MM-DD)')).toHaveValue('2024-05-02')
+    expect(screen.getByLabelText('Amount')).toHaveValue('10.00')
+  })
+
   it('F5 = Copy Last Transaction shows the generic error message on API failure', async () => {
     server.use(http.get('/api/transactions/last', () => HttpResponse.json({ message: 'boom' }, { status: 500 })))
     const user = userEvent.setup()
@@ -232,6 +262,19 @@ describe('TransactionAddPage (COTRN02C) - additional coverage', () => {
     await user.type(screen.getByLabelText('Confirm (Y/N)'), 'Y')
     await user.click(screen.getByRole('button', { name: 'Enter (confirm)' }))
     expect(await screen.findByText('Validation failed.')).toBeInTheDocument()
+  })
+
+  it('F4 = Clear resets every field, the validated state, and any message (PF4)', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await fillMandatoryFields(user)
+    await user.click(screen.getByRole('button', { name: 'Enter (validate)' }))
+    await screen.findByText('Transaction validated. Set Confirm to Y and press Enter to add.')
+    await user.click(screen.getByRole('button', { name: 'F4 = Clear' }))
+    expect(screen.getByLabelText('Account ID')).toHaveValue('')
+    expect(screen.getByLabelText('Description')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Enter (validate)' })).toBeInTheDocument()
+    expect(screen.queryByText('Transaction validated. Set Confirm to Y and press Enter to add.')).not.toBeInTheDocument()
   })
 
   it('has a Back link to the main menu', () => {

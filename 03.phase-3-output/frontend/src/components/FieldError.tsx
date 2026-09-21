@@ -1,4 +1,8 @@
-export function FieldError({ message }: { message: string | undefined }) {
+export function FieldError({ id, message }: { id?: string; message: string | undefined }) {
   if (!message) return null
-  return <span className="field-error">{message}</span>
+  return (
+    <span id={id} className="field-error">
+      {message}
+    </span>
+  )
 }
