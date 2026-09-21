@@ -1,0 +1,267 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="2253" viewBox="0 0 1700 2253" font-family="Helvetica,Arial,sans-serif">
+
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+  </marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#1a5fb4"/>
+  </marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#2e7d32"/>
+  </marker>
+</defs>
+
+<rect x="0" y="0" width="1700" height="2253" fill="#ffffff"/>
+<text x="850.0" y="35" text-anchor="middle" font-size="24" font-weight="bold">CardDemo Validation Rule Dependencies</text>
+<text x="850.0" y="58" text-anchor="middle" font-size="13" fill="#555">Reference: 01.phase-1-output/validation-rules.md (VR-001&#8211;VR-128)</text>
+<text x="30" y="80" font-size="16" font-weight="bold" text-anchor="start" fill="#111">1. Validation Rules Grouped by Screen / Program</text>
+<rect x="30" y="100" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="40" y="120" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COSGN00C</text>
+<text x="40" y="137" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Sign-On</text>
+<text x="40" y="153" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-001&amp;#8211;VR-002</text>
+<rect x="360" y="100" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="370" y="120" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COMEN01C</text>
+<text x="370" y="137" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Main Menu</text>
+<text x="370" y="153" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-003</text>
+<rect x="690" y="100" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="700" y="120" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COADM01C</text>
+<text x="700" y="137" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Admin Menu</text>
+<text x="700" y="153" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-004</text>
+<rect x="1020" y="100" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="1030" y="120" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COACTVWC</text>
+<text x="1030" y="137" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Account View</text>
+<text x="1030" y="153" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-005&amp;#8211;VR-006</text>
+<rect x="1350" y="100" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="1360" y="120" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COACTUPC</text>
+<text x="1360" y="137" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Account Update</text>
+<text x="1360" y="153" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-007&amp;#8211;VR-053</text>
+<rect x="30" y="178" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="40" y="198" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COCRDLIC</text>
+<text x="40" y="215" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Card List</text>
+<text x="40" y="231" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-054&amp;#8211;VR-057</text>
+<rect x="360" y="178" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="370" y="198" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COCRDSLC</text>
+<text x="370" y="215" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Card Search/Detail</text>
+<text x="370" y="231" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-058&amp;#8211;VR-059</text>
+<rect x="690" y="178" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="700" y="198" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COCRDUPC</text>
+<text x="700" y="215" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Card Update</text>
+<text x="700" y="231" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-060&amp;#8211;VR-068</text>
+<rect x="1020" y="178" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="1030" y="198" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COTRN00C</text>
+<text x="1030" y="215" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Transaction List</text>
+<text x="1030" y="231" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-069&amp;#8211;VR-070</text>
+<rect x="1350" y="178" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="1360" y="198" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COTRN01C</text>
+<text x="1360" y="215" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Transaction View</text>
+<text x="1360" y="231" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-071</text>
+<rect x="30" y="256" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="40" y="276" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COTRN02C</text>
+<text x="40" y="293" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Transaction Add</text>
+<text x="40" y="309" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-072&amp;#8211;VR-094</text>
+<rect x="360" y="256" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="370" y="276" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COBIL00C</text>
+<text x="370" y="293" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Bill Payment</text>
+<text x="370" y="309" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-095&amp;#8211;VR-097</text>
+<rect x="690" y="256" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="700" y="276" font-size="13" font-weight="bold" text-anchor="start" fill="#111">CORPT00C</text>
+<text x="700" y="293" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Report Request</text>
+<text x="700" y="309" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-098&amp;#8211;VR-114</text>
+<rect x="1020" y="256" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="1030" y="276" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COUSR00C</text>
+<text x="1030" y="293" font-size="11" font-weight="normal" text-anchor="start" fill="#444">User List</text>
+<text x="1030" y="309" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-115</text>
+<rect x="1350" y="256" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="1360" y="276" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COUSR01C</text>
+<text x="1360" y="293" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Add User</text>
+<text x="1360" y="309" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-116&amp;#8211;VR-120</text>
+<rect x="30" y="334" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="40" y="354" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COUSR02C</text>
+<text x="40" y="371" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Update User</text>
+<text x="40" y="387" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-121&amp;#8211;VR-126</text>
+<rect x="360" y="334" width="310" height="62" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="370" y="354" font-size="13" font-weight="bold" text-anchor="start" fill="#111">COUSR03C</text>
+<text x="370" y="371" font-size="11" font-weight="normal" text-anchor="start" fill="#444">Delete User</text>
+<text x="370" y="387" font-size="11" font-weight="bold" text-anchor="start" fill="#1a5fb4">VR-127&amp;#8211;VR-128</text>
+<text x="30" y="442" font-size="16" font-weight="bold" text-anchor="start" fill="#111">2. Gated / Conditional Dependencies (a check only runs if its gate passed)</text>
+<text x="30" y="462" font-size="13" font-weight="bold" text-anchor="start" fill="#555">COACTUPC (Account Update)</text>
+<rect x="30" y="476" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="132.5" y="494" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-021</text>
+<text x="132.5" y="510.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">FICO Score</text>
+<text x="132.5" y="522.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">numeric-required (3-digit)</text>
+<rect x="295" y="476" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="397.5" y="494" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-040</text>
+<text x="397.5" y="510.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">FICO Score</text>
+<text x="397.5" y="522.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">range 300-850</text>
+<line x1="235" y1="505.0" x2="295" y2="505.0" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="580" y="476" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="682.5" y="494" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-026</text>
+<text x="682.5" y="510.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">State field</text>
+<text x="682.5" y="522.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">alpha-required</text>
+<rect x="845" y="476" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="947.5" y="494" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-041</text>
+<text x="947.5" y="510.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">State code</text>
+<text x="947.5" y="522.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">must be valid US code</text>
+<line x1="785" y1="505.0" x2="845" y2="505.0" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="30" y="556" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="132.5" y="574" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-027</text>
+<text x="132.5" y="590.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">Zip field</text>
+<text x="132.5" y="602.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">numeric-required (5 digit)</text>
+<rect x="845" y="556" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="947.5" y="574" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-042</text>
+<text x="947.5" y="590.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">State + Zip</text>
+<text x="947.5" y="602.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">cross-field combo check</text>
+<polyline points="132.5,556 132.5,545 947.5,545 947.5,556" fill="none" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<line x1="947.5" y1="534" x2="947.5" y2="556" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="30" y="636" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="132.5" y="654" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-036</text>
+<text x="132.5" y="670.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">SSN Part 1 (3 digit)</text>
+<text x="132.5" y="682.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">numeric-required</text>
+<rect x="295" y="636" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="397.5" y="654" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-037</text>
+<text x="397.5" y="670.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">SSN Part 1</text>
+<text x="397.5" y="682.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">exclude 000/666/900-999</text>
+<line x1="235" y1="665.0" x2="295" y2="665.0" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="580" y="636" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="682.5" y="654" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-030-033</text>
+<text x="682.5" y="670.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">DOB: year/month/day</text>
+<text x="682.5" y="682.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">format checks (CSUTLDPY)</text>
+<rect x="845" y="636" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="947.5" y="654" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-035</text>
+<text x="947.5" y="670.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">Date of Birth</text>
+<text x="947.5" y="682.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">must not be in the future</text>
+<line x1="785" y1="665.0" x2="845" y2="665.0" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="30" y="734" font-size="13" font-weight="bold" text-anchor="start" fill="#555">COTRN02C (Transaction Add) and CORPT00C (Report Request)</text>
+<rect x="30" y="748" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="132.5" y="766" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-089</text>
+<text x="132.5" y="782.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">Orig Date</text>
+<text x="132.5" y="794.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">format YYYY-MM-DD</text>
+<rect x="295" y="748" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="397.5" y="766" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-091</text>
+<text x="397.5" y="782.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">Orig Date</text>
+<text x="397.5" y="794.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">CSUTLDTC calendar check</text>
+<line x1="235" y1="777.0" x2="295" y2="777.0" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="580" y="748" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="682.5" y="766" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-090</text>
+<text x="682.5" y="782.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">Proc Date</text>
+<text x="682.5" y="794.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">format YYYY-MM-DD</text>
+<rect x="845" y="748" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="947.5" y="766" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-092</text>
+<text x="947.5" y="782.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">Proc Date</text>
+<text x="947.5" y="794.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">CSUTLDTC calendar check</text>
+<line x1="785" y1="777.0" x2="845" y2="777.0" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="30" y="828" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="132.5" y="846" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-099,101,105-107</text>
+<text x="132.5" y="862.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">Start Date</text>
+<text x="132.5" y="874.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">required + range checks</text>
+<rect x="295" y="828" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="397.5" y="846" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-111</text>
+<text x="397.5" y="862.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">Start Date</text>
+<text x="397.5" y="874.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">CSUTLDTC calendar check</text>
+<line x1="235" y1="857.0" x2="295" y2="857.0" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="580" y="828" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="682.5" y="846" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-102,104,108-110</text>
+<text x="682.5" y="862.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">End Date</text>
+<text x="682.5" y="874.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">required + range checks</text>
+<rect x="845" y="828" width="205" height="58" rx="5" fill="#fff7e6" stroke="#b58900" stroke-width="1.2"/>
+<text x="947.5" y="846" font-size="12.5" font-weight="bold" text-anchor="middle" fill="#7a4b00">VR-112</text>
+<text x="947.5" y="862.0" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">End Date</text>
+<text x="947.5" y="874.5" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#333">CSUTLDTC calendar check</text>
+<line x1="785" y1="857.0" x2="845" y2="857.0" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="30" y="926" font-size="16" font-weight="bold" text-anchor="start" fill="#111">3. Shared / Reused Validation Components Across Programs</text>
+<text x="30" y="926" font-size="16" font-weight="bold" text-anchor="start" fill="#111">3. Shared / Reused Validation Components Across Programs</text>
+<circle cx="220" cy="1036.0" r="62" fill="#e6f4ea" stroke="#2e7d32" stroke-width="1.5"/>
+<text x="220" y="1028.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">CSUTLDTC</text>
+<text x="220" y="1043.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">(CEEDAYS date</text>
+<text x="220" y="1058.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">validator)</text>
+<rect x="372" y="951" width="300" height="46" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="969" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COACTUPC: CSUTLDPY EDIT-DATE-LE</text>
+<text x="522.0" y="982" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-034</text>
+<line x1="282" y1="1036.0" x2="372" y2="974.0" stroke="#2e7d32" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<rect x="372" y="1013" width="300" height="46" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1031" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COTRN02C: Orig/Proc Date checks</text>
+<text x="522.0" y="1044" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-091, VR-092</text>
+<line x1="282" y1="1036.0" x2="372" y2="1036.0" stroke="#2e7d32" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<rect x="372" y="1075" width="300" height="46" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1093" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">CORPT00C: Start/End Date checks</text>
+<text x="522.0" y="1106" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-111, VR-112</text>
+<line x1="282" y1="1036.0" x2="372" y2="1098.0" stroke="#2e7d32" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<circle cx="220" cy="1314.0" r="62" fill="#eef3fb" stroke="#1a5fb4" stroke-width="1.5"/>
+<text x="220" y="1306.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">Account filter:</text>
+<text x="220" y="1321.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">must be numeric,</text>
+<text x="220" y="1336.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">non-zero, 11 digits</text>
+<rect x="372" y="1181" width="300" height="42" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1199" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COACTVWC: 2210-EDIT-ACCOUNT</text>
+<text x="522.0" y="1212" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-006</text>
+<line x1="282" y1="1314.0" x2="372" y2="1202.0" stroke="#1a5fb4" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+<rect x="372" y="1237" width="300" height="42" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1255" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COACTUPC: 1210-EDIT-ACCOUNT</text>
+<text x="522.0" y="1268" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-008</text>
+<line x1="282" y1="1314.0" x2="372" y2="1258.0" stroke="#1a5fb4" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+<rect x="372" y="1293" width="300" height="42" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1311" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COCRDLIC: 2210-EDIT-ACCOUNT</text>
+<text x="522.0" y="1324" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-054</text>
+<line x1="282" y1="1314.0" x2="372" y2="1314.0" stroke="#1a5fb4" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+<rect x="372" y="1349" width="300" height="42" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1367" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COCRDSLC: 2210-EDIT-ACCOUNT</text>
+<text x="522.0" y="1380" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-058</text>
+<line x1="282" y1="1314.0" x2="372" y2="1370.0" stroke="#1a5fb4" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+<rect x="372" y="1405" width="300" height="42" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1423" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COCRDUPC: 1210-EDIT-ACCOUNT</text>
+<text x="522.0" y="1436" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-061</text>
+<line x1="282" y1="1314.0" x2="372" y2="1426.0" stroke="#1a5fb4" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+<circle cx="220" cy="1584.0" r="62" fill="#eef3fb" stroke="#1a5fb4" stroke-width="1.5"/>
+<text x="220" y="1576.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">Card filter:</text>
+<text x="220" y="1591.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">must be numeric,</text>
+<text x="220" y="1606.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">non-zero, 16 digits</text>
+<rect x="372" y="1507" width="300" height="42" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1525" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COCRDLIC: 2220-EDIT-CARD</text>
+<text x="522.0" y="1538" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-055</text>
+<line x1="282" y1="1584.0" x2="372" y2="1528.0" stroke="#1a5fb4" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+<rect x="372" y="1563" width="300" height="42" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1581" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COCRDSLC: 2220-EDIT-CARD</text>
+<text x="522.0" y="1594" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-059</text>
+<line x1="282" y1="1584.0" x2="372" y2="1584.0" stroke="#1a5fb4" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+<rect x="372" y="1619" width="300" height="42" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="522.0" y="1637" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">COCRDUPC: 1220-EDIT-CARD</text>
+<text x="522.0" y="1650" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-063</text>
+<line x1="282" y1="1584.0" x2="372" y2="1640.0" stroke="#1a5fb4" stroke-width="1.6" marker-end="url(#arrow-blue)"/>
+<circle cx="220" cy="1902.0" r="68" fill="#f3e9fb" stroke="#7b3fa0" stroke-width="1.5"/>
+<text x="220" y="1894.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">COACTUPC generic</text>
+<text x="220" y="1909.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">1200-series field</text>
+<text x="220" y="1924.0" font-size="11" font-weight="bold" text-anchor="middle" fill="#1b5e20">editors (VR-009&amp;#8211;014)</text>
+<rect x="372" y="1721" width="440" height="52" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="592.0" y="1739" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-009 1215-EDIT-MANDATORY</text>
+<text x="592.0" y="1752" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">Address Line 1 (VR-025)</text>
+<line x1="288" y1="1902.0" x2="372" y2="1747.0" stroke="#7b3fa0" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<rect x="372" y="1783" width="440" height="52" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="592.0" y="1801" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-010 1220-EDIT-YESNO</text>
+<text x="592.0" y="1814" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">Account Status (VR-015), Primary Card Holder (VR-030c)</text>
+<line x1="288" y1="1902.0" x2="372" y2="1809.0" stroke="#7b3fa0" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<rect x="372" y="1845" width="440" height="52" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="592.0" y="1863" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-011 1225-EDIT-ALPHA-REQD</text>
+<text x="592.0" y="1876" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">First/Last Name (VR-022/024), State (VR-026), City (VR-028), Country (VR-029)</text>
+<line x1="288" y1="1902.0" x2="372" y2="1871.0" stroke="#7b3fa0" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<rect x="372" y="1907" width="440" height="52" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="592.0" y="1925" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-012 1235-EDIT-ALPHA-OPT</text>
+<text x="592.0" y="1938" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">Middle Name (VR-023)</text>
+<line x1="288" y1="1902.0" x2="372" y2="1933.0" stroke="#7b3fa0" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<rect x="372" y="1969" width="440" height="52" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="592.0" y="1987" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-013 1245-EDIT-NUM-REQD</text>
+<text x="592.0" y="2000" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">Zip (VR-027), FICO Score (VR-021), EFT Account Id (VR-030b), SSN parts (VR-036/038/039)</text>
+<line x1="288" y1="1902.0" x2="372" y2="1995.0" stroke="#7b3fa0" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<rect x="372" y="2031" width="440" height="52" rx="5" fill="#f5f5f5" stroke="#777" stroke-width="1.1"/>
+<text x="592.0" y="2049" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">VR-014 1250-EDIT-SIGNED-9V2</text>
+<text x="592.0" y="2062" font-size="10.3" font-weight="normal" text-anchor="middle" fill="#222">Credit/Cash/Balance/Cycle Limits (VR-016&amp;#8211;020)</text>
+<line x1="288" y1="1902.0" x2="372" y2="2057.0" stroke="#7b3fa0" stroke-width="1.6" marker-end="url(#arrow-green)"/>
+<text x="30" y="2123" font-size="14" font-weight="bold" text-anchor="start" fill="#111">Legend</text>
+<rect x="30" y="2131" width="20" height="20" rx="6" fill="#eef3fb" stroke="#3465a4" stroke-width="1.3"/>
+<text x="58" y="2145" font-size="11" font-weight="normal" text-anchor="start" fill="#111">Screen / program rule group (Section 1)</text>
+<rect x="30" y="2157" width="20" height="20" rx="6" fill="#fff7e6" stroke="#b58900" stroke-width="1.3"/>
+<text x="58" y="2171" font-size="11" font-weight="normal" text-anchor="start" fill="#111">Individual validation rule / rule group node (Section 2)</text>
+<line x1="30" y1="2193" x2="50" y2="2193" stroke="#333" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="58" y="2197" font-size="11" font-weight="normal" text-anchor="start" fill="#111">"gates" &amp;#8212; downstream check only runs if the upstream check passed</text>
+<circle cx="40" cy="2219" r="10" fill="#e6f4ea" stroke="#2e7d32" stroke-width="1.5"/>
+<text x="58" y="2223" font-size="11" font-weight="normal" text-anchor="start" fill="#111">Shared component reused by multiple programs (Section 3)</text>
+</svg>
