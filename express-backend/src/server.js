@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createApp } from './app.js';
+import { importData } from './import-data.js';
+const here = path.dirname(fileURLToPath(import.meta.url));
+const dataFile = process.env.DATA_FILE ? path.resolve(process.env.DATA_FILE) : path.join(here, '../data/carddemo.json');
+if (!fs.existsSync(dataFile)) importData(dataFile);
+const port = Number(process.env.PORT || 3000);
+createApp({ dataFile }).listen(port, () => console.log(`CardDemo API listening on ${port}`));
