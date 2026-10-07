@@ -1,0 +1,85 @@
+/* Shared styles for native form controls (used by TextField, SelectField, CheckboxField). */
+.wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  height: var(--control-height);
+  width: 100%;
+  min-width: 0;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+.input::placeholder {
+  color: #8a93a8;
+}
+
+.input:focus {
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px rgb(53 88 201 / 20%);
+  outline: none;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.input[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px rgb(179 38 30 / 15%);
+}
+
+.input:disabled,
+.input[readonly] {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.01em;
+}
+
+.hasTrailing {
+  padding-right: var(--space-12);
+}
+
+.trailing {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+
+.select {
+  appearance: none;
+  padding-right: var(--space-8);
+}
+
+.chevron {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-subtle);
+  pointer-events: none;
+}
+
+@media (max-width: 639px) {
+  .input {
+    height: var(--touch-target);
+    font-size: 16px; /* prevents iOS zoom on focus */
+  }
+}

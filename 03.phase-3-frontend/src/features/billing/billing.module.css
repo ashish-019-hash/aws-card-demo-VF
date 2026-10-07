@@ -1,0 +1,65 @@
+.messageSlot {
+  margin-bottom: var(--space-4);
+}
+
+.lookupForm {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.lookupField {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+/* Lines the buttons up with the input inside the FormField label/control/hint stack. */
+.lookupActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: 26px;
+}
+
+.resultCard {
+  margin-top: var(--space-5);
+}
+
+.balanceLabel {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.balanceValue {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+}
+
+.explanation {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.confirmSlot {
+  margin-top: var(--space-4);
+}
+
+.footerActions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 639px) {
+  .footerActions {
+    flex-direction: column;
+  }
+
+  .footerActions > * {
+    width: 100%;
+  }
+}

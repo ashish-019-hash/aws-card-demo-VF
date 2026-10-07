@@ -1,0 +1,45 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.root::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.neutral {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.brand {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}

@@ -1,0 +1,63 @@
+export class ApiError extends Error {
+  readonly status: number
+  readonly detail?: string
+
+  constructor(message: string, status: number, detail?: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.detail = detail
+  }
+}
+
+interface ProblemDetail {
+  title?: string
+  detail?: string
+  status?: number
+}
+
+let csrfHeader: { name: string; token: string } | null = null
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+const apiUrl = (path: string) => `${API_BASE_URL}${path}`
+
+async function readError(response: Response): Promise<ApiError> {
+  let problem: ProblemDetail | undefined
+  try {
+    problem = (await response.json()) as ProblemDetail
+  } catch {
+    // Some Spring Security responses have an empty body.
+  }
+
+  const detail = problem?.detail
+  const message = detail ?? problem?.title ?? `Request failed with status ${response.status}.`
+  return new ApiError(message, response.status, detail)
+}
+
+async function getCsrfHeader(): Promise<{ name: string; token: string }> {
+  if (csrfHeader) return csrfHeader
+  const response = await fetch(apiUrl('/api/auth/csrf'), { credentials: 'include' })
+  if (!response.ok) throw await readError(response)
+  const value = (await response.json()) as { headerName: string; token: string }
+  csrfHeader = { name: value.headerName, token: value.token }
+  return csrfHeader
+}
+
+export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const method = init.method?.toUpperCase() ?? 'GET'
+  const headers = new Headers(init.headers)
+  if (init.body) headers.set('Content-Type', 'application/json')
+
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && path !== '/api/auth/login') {
+    const csrf = await getCsrfHeader()
+    headers.set(csrf.name, csrf.token)
+  }
+
+  const response = await fetch(apiUrl(path), { ...init, headers, credentials: 'include' })
+  if (!response.ok) throw await readError(response)
+  if (response.status === 204) return undefined as T
+  return (await response.json()) as T
+}
+
+export function clearApiSession() {
+  csrfHeader = null
+}

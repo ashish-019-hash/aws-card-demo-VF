@@ -1,0 +1,77 @@
+/* CardDemo base styles: reset, typography, focus ring, reduced motion. */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-synthesis: none;
+  text-rendering: optimizelegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+svg {
+  flex: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+/* Visible focus ring on every interactive element. */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The main landmark receives programmatic focus after navigation. */
+main:focus {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

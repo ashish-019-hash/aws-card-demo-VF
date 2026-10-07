@@ -1,0 +1,102 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(23 32 51 / 50%);
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+
+.panel {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 41;
+  width: min(300px, 85vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-nav);
+  color: var(--color-nav-text);
+  padding: var(--space-4);
+  overflow-y: auto;
+  animation: drawer-in var(--duration-base) var(--ease);
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3) var(--space-4);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-inverse);
+  font-weight: 700;
+  font-size: var(--text-lg);
+}
+
+.mark {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  display: grid;
+  place-items: center;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  margin-right: calc(-1 * var(--space-2));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-inverse);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-nav-hover);
+}
+
+.user {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  font-size: var(--text-xs);
+  color: var(--color-nav-text-soft);
+}
+
+.userId {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-text-inverse);
+}
+
+@media (min-width: 1024px) {
+  .backdrop,
+  .panel {
+    display: none;
+  }
+}

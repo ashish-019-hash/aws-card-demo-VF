@@ -1,0 +1,75 @@
+/* Shared layout for the user-administration screens (SCREEN-14..17). */
+
+/* Vertical rhythm between the page header, message bar and cards. */
+.stack > * + * {
+  margin-top: var(--space-5);
+}
+
+/* Lookup/filter row: field grows, buttons align with the input line. */
+.searchBar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.searchField {
+  flex: 1;
+  max-width: 420px;
+}
+
+.searchActions {
+  display: flex;
+  gap: var(--space-2);
+  /* Label line (text-sm * line-height) plus the FormField column gap. */
+  padding-top: calc(var(--text-sm) * var(--line-height) + var(--space-1));
+}
+
+/* User form fields: two columns on tablet/desktop, one below 768px. */
+.formGrid {
+  display: grid;
+  gap: var(--space-2) var(--space-5);
+}
+
+@media (min-width: 768px) {
+  .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Card-footer note + action row. */
+.footNote {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.footActions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 639px) {
+  .searchBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchField {
+    max-width: none;
+  }
+
+  .searchActions {
+    padding-top: 0;
+  }
+
+  .searchActions > *,
+  .footActions > * {
+    flex: 1;
+  }
+}
+
+/* Spacing above the irreversible-action warning on the delete review card. */
+.reviewWarning {
+  margin-top: var(--space-5);
+}

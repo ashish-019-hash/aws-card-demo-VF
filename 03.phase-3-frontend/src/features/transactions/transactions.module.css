@@ -1,0 +1,156 @@
+.messageSlot {
+  margin-bottom: var(--space-4);
+}
+
+.filterForm {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.filterField {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+/* Lines the button up with the input inside the FormField label/control/hint stack. */
+.filterButton {
+  margin-top: 26px;
+}
+
+.truncate {
+  display: inline-block;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.negative {
+  color: var(--color-danger);
+}
+
+.errorState {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+}
+
+/* Search card (Transaction View) */
+.searchForm {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.searchField {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+.searchActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: 26px;
+}
+
+/* Detail cards (Transaction View) */
+.detailGrid {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .detailGrid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+/* Add form */
+.fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-5);
+  min-width: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.fieldsetHint {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.formGrid {
+  display: grid;
+  gap: 0 var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+  .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.formFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.footerNote {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+@media (max-width: 639px) {
+  .formFooter {
+    position: sticky;
+    bottom: 0;
+    background: var(--color-surface);
+    padding-bottom: var(--space-3);
+  }
+
+  .formActions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .formActions > * {
+    width: 100%;
+  }
+}
+
+.confirmSlot {
+  margin-top: var(--space-4);
+}
+
+.confirmNote {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
