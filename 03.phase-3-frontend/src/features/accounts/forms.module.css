@@ -1,0 +1,103 @@
+/* Shared account form layouts (search bar, update fieldsets, action bars). */
+
+/* Vertical rhythm for page sections below the header. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.searchBar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.searchField {
+  flex: 1;
+  max-width: 360px;
+}
+
+/* Align the button with the input (label height + label margin). */
+.searchButton {
+  margin-top: 26px;
+}
+
+@media (max-width: 639px) {
+  .searchBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .searchField {
+    max-width: none;
+  }
+
+  .searchButton {
+    margin-top: 0;
+    width: 100%;
+  }
+}
+
+.fieldset {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-5) var(--space-5) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+
+.legend {
+  padding: 0 var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.legendMeta {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+@media (max-width: 639px) {
+  .actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding: var(--space-3) var(--space-4);
+    margin: 0 calc(-1 * var(--space-2));
+  }
+
+  .actions > * {
+    width: 100%;
+  }
+}

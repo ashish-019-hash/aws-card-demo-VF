@@ -1,0 +1,57 @@
+.messageSlot {
+  margin-bottom: var(--space-4);
+}
+
+.resultCard {
+  margin-top: var(--space-5);
+}
+
+.optionLabel {
+  display: block;
+  font-weight: 500;
+}
+
+.optionHint {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.customDates {
+  display: grid;
+  gap: 0 var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .customDates {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 560px;
+  }
+}
+
+.note {
+  margin: var(--space-2) 0 var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+@media (max-width: 639px) {
+  .actions {
+    flex-direction: column;
+  }
+
+  .actions > * {
+    width: 100%;
+  }
+}
+
+.confirmSlot {
+  margin-top: var(--space-4);
+}

@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: carddemo-backend
+  datasource:
+    url: jdbc:h2:mem:carddemo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: ""
+  jpa:
+    open-in-view: false
+    defer-datasource-initialization: true
+    hibernate:
+      ddl-auto: create
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+carddemo:
+  cors:
+    allowed-origins: ${CARDDEMO_ALLOWED_ORIGINS:http://localhost:5173}

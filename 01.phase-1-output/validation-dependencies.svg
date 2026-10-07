@@ -1,0 +1,201 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="1180" viewBox="0 0 1680 1180" font-family="Helvetica, Arial, sans-serif">
+
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="1680" height="1180" fill="#ffffff"/>
+
+<text x="40" y="42" font-size="24" font-weight="bold" fill="#0f172a">CardDemo Validation Dependencies — RULE-VAL-001 … RULE-VAL-081</text>
+<text x="40" y="64" font-size="12.5" fill="#475569">Source: 00.phase-1-input/cbl and cpy (checked-out working tree) · Companion catalog: 01.phase-1-output/validation-rules.md</text>
+<rect x="1020" y="14" width="620" height="68" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+<text x="1034" y="33" font-size="11.5" fill="#334155">A ← B : rule A runs only after rule B passes (conditional dependency)</text>
+<text x="1034" y="51" font-size="11.5" fill="#334155">[G] generic edit paragraphs   [D] date infrastructure   [L] CSLKPCDY lookups   [K] shared key/field patterns</text>
+<text x="1034" y="69" font-size="11.5" fill="#334155">dashed arrow : rule group relies on shared validation infrastructure (bottom band)</text>
+<rect x="40" y="100" width="380" height="122" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="40" y="100" width="380" height="26" rx="8" fill="#dbeafe" stroke="#475569" stroke-width="1.2"/>
+<rect x="40" y="113" width="380" height="13" fill="#dbeafe"/>
+<line x1="40" y1="126" x2="420" y2="126" stroke="#475569" stroke-width="1.2"/>
+<text x="52" y="118.5" font-size="13.5" font-weight="bold" fill="#0f172a">Sign-On — COSGN00C (COSGN00)</text>
+<text x="54" y="144" font-size="12.5" fill="#1e293b">VAL-001  User ID required (8 chars) [K]</text>
+<text x="54" y="163" font-size="12.5" fill="#1e293b">VAL-002  Password required (8 chars)</text>
+<text x="54" y="182" font-size="12.5" fill="#1e293b">VAL-003  User exists in USRSEC  ← 001+002</text>
+<text x="54" y="201" font-size="12.5" fill="#1e293b">VAL-004  Password matches  ← 003</text>
+<rect x="450" y="100" width="380" height="122" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="450" y="100" width="380" height="26" rx="8" fill="#dbeafe" stroke="#475569" stroke-width="1.2"/>
+<rect x="450" y="113" width="380" height="13" fill="#dbeafe"/>
+<line x1="450" y1="126" x2="830" y2="126" stroke="#475569" stroke-width="1.2"/>
+<text x="462" y="118.5" font-size="13.5" font-weight="bold" fill="#0f172a">Menus — COMEN01C / COADM01C</text>
+<text x="464" y="144" font-size="12.5" fill="#1e293b">VAL-005  Option numeric and in range</text>
+<text x="464" y="163" font-size="12.5" fill="#1e293b">VAL-006  Admin-only option blocked  ← 005</text>
+<text x="464" y="182" font-size="12.5" fill="#1e293b">VAL-007  Admin option numeric and in range</text>
+<rect x="860" y="100" width="380" height="122" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="860" y="100" width="380" height="26" rx="8" fill="#dcfce7" stroke="#475569" stroke-width="1.2"/>
+<rect x="860" y="113" width="380" height="13" fill="#dcfce7"/>
+<line x1="860" y1="126" x2="1240" y2="126" stroke="#475569" stroke-width="1.2"/>
+<text x="872" y="118.5" font-size="13.5" font-weight="bold" fill="#0f172a">Account View — COACTVWC (COACTVW)</text>
+<text x="874" y="144" font-size="12.5" fill="#1e293b">VAL-008  Account ID required [K]</text>
+<text x="874" y="163" font-size="12.5" fill="#1e293b">VAL-009  11-digit, non-zero [K]</text>
+<text x="874" y="182" font-size="12.5" fill="#1e293b">VAL-010  Exists in XREF+ACCT+CUST  ← 008/009</text>
+<rect x="1270" y="100" width="370" height="122" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="1270" y="100" width="370" height="26" rx="8" fill="#fef9c3" stroke="#475569" stroke-width="1.2"/>
+<rect x="1270" y="113" width="370" height="13" fill="#fef9c3"/>
+<line x1="1270" y1="126" x2="1640" y2="126" stroke="#475569" stroke-width="1.2"/>
+<text x="1282" y="118.5" font-size="13.5" font-weight="bold" fill="#0f172a">Card View — COCRDSLC (COCRDSL)</text>
+<text x="1284" y="144" font-size="12.5" fill="#1e293b">VAL-039  Account ID required, 11-digit [K]</text>
+<text x="1284" y="163" font-size="12.5" fill="#1e293b">VAL-040  Card number required, 16-digit [K]</text>
+<text x="1284" y="182" font-size="12.5" fill="#1e293b">VAL-041  Acct/Card combo exists  ← 039+040</text>
+<rect x="40" y="270" width="790" height="250" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="40" y="270" width="790" height="26" rx="8" fill="#dcfce7" stroke="#475569" stroke-width="1.2"/>
+<rect x="40" y="283" width="790" height="13" fill="#dcfce7"/>
+<line x1="40" y1="296" x2="830" y2="296" stroke="#475569" stroke-width="1.2"/>
+<text x="52" y="288.5" font-size="13.5" font-weight="bold" fill="#0f172a">Account Update — COACTUPC (COACTUP)</text>
+<text x="54" y="314" font-size="12.5" fill="#1e293b">VAL-011/012  Search key 11-digit non-zero [K][G]</text>
+<text x="54" y="333" font-size="12.5" fill="#1e293b">VAL-013  Exists in XREF+ACCT+CUST  ← 011/012</text>
+<text x="54" y="352" font-size="12.5" fill="#1e293b">VAL-014  Active status Y/N [G]</text>
+<text x="54" y="371" font-size="12.5" fill="#1e293b">VAL-015  Dates real CCYYMMDD [D]</text>
+<text x="54" y="390" font-size="12.5" fill="#1e293b">VAL-016  DOB not in future  ← 015 [D]</text>
+<text x="54" y="409" font-size="12.5" fill="#1e293b">VAL-017  Money fields signed 9(8)V99 [G]</text>
+<text x="54" y="428" font-size="12.5" fill="#1e293b">VAL-018–020  SSN parts (p1 ≠ 000/666/900–999)</text>
+<text x="54" y="447" font-size="12.5" fill="#1e293b">VAL-021  FICO score 300–850</text>
+<text x="445" y="314" font-size="12.5" fill="#1e293b">VAL-022/023  Names alpha; first/last required [G]</text>
+<text x="445" y="333" font-size="12.5" fill="#1e293b">VAL-024/025  Address line 1 + city required [G]</text>
+<text x="445" y="352" font-size="12.5" fill="#1e293b">VAL-026  State is valid US code [L]</text>
+<text x="445" y="371" font-size="12.5" fill="#1e293b">VAL-027  Zip 5-digit non-zero</text>
+<text x="445" y="390" font-size="12.5" fill="#1e293b">VAL-028  Country alpha, 3 chars</text>
+<text x="445" y="409" font-size="12.5" fill="#1e293b">VAL-029  State+Zip combo  ← 026+027 [L]</text>
+<text x="445" y="428" font-size="12.5" fill="#1e293b">VAL-030  Phone NANP, all-or-none group [L]</text>
+<text x="445" y="447" font-size="12.5" fill="#1e293b">VAL-031 EFT acct 10-digit · VAL-032 Primary Y/N</text>
+<line x1="50" y1="475" x2="820" y2="475" stroke="#94a3b8" stroke-dasharray="3,3"/>
+<text x="54" y="491" font-size="12.5" font-weight="bold" fill="#7c2d12">VAL-033  Change detection gates VAL-014…033 (edit suite skipped when nothing changed)</text>
+<text x="54" y="510" font-size="12.5" font-weight="bold" fill="#7c2d12">VAL-034  Optimistic-concurrency check  ← confirmed save</text>
+<rect x="860" y="270" width="380" height="122" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="860" y="270" width="380" height="26" rx="8" fill="#fef9c3" stroke="#475569" stroke-width="1.2"/>
+<rect x="860" y="283" width="380" height="13" fill="#fef9c3"/>
+<line x1="860" y1="296" x2="1240" y2="296" stroke="#475569" stroke-width="1.2"/>
+<text x="872" y="288.5" font-size="13.5" font-weight="bold" fill="#0f172a">Card List — COCRDLIC (COCRDLI)</text>
+<text x="874" y="314" font-size="12.5" fill="#1e293b">VAL-035  Acct filter optional, 11-digit [K]</text>
+<text x="874" y="333" font-size="12.5" fill="#1e293b">VAL-036  Card filter optional, 16-digit [K]</text>
+<text x="874" y="352" font-size="12.5" fill="#1e293b">VAL-037  Selection 'S'/'U'  ← 035/036</text>
+<text x="874" y="371" font-size="12.5" fill="#1e293b">VAL-038  Only one row selectable</text>
+<rect x="860" y="412" width="380" height="86" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="860" y="412" width="380" height="26" rx="8" fill="#fee2e2" stroke="#475569" stroke-width="1.2"/>
+<rect x="860" y="425" width="380" height="13" fill="#fee2e2"/>
+<line x1="860" y1="438" x2="1240" y2="438" stroke="#475569" stroke-width="1.2"/>
+<text x="872" y="430.5" font-size="13.5" font-weight="bold" fill="#0f172a">Transaction List — COTRN00C (COTRN00)</text>
+<text x="874" y="456" font-size="12.5" fill="#1e293b">VAL-050  Row selection must be 'S'</text>
+<text x="874" y="475" font-size="12.5" fill="#1e293b">VAL-051  Tran ID filter optional, numeric [K]</text>
+<rect x="1270" y="270" width="370" height="200" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="1270" y="270" width="370" height="26" rx="8" fill="#fef9c3" stroke="#475569" stroke-width="1.2"/>
+<rect x="1270" y="283" width="370" height="13" fill="#fef9c3"/>
+<line x1="1270" y1="296" x2="1640" y2="296" stroke="#475569" stroke-width="1.2"/>
+<text x="1282" y="288.5" font-size="13.5" font-weight="bold" fill="#0f172a">Card Update — COCRDUPC (COCRDUP)</text>
+<text x="1284" y="314" font-size="12.5" fill="#1e293b">VAL-042  Acct key 11-digit non-zero [K]</text>
+<text x="1284" y="333" font-size="12.5" fill="#1e293b">VAL-043  Card key 16-digit non-zero [K]</text>
+<text x="1284" y="352" font-size="12.5" fill="#1e293b">VAL-044  Combo exists in card file  ← 042+043</text>
+<text x="1284" y="371" font-size="12.5" fill="#1e293b">VAL-045  Embossed name alpha, required</text>
+<text x="1284" y="390" font-size="12.5" fill="#1e293b">VAL-046  Card status Y/N</text>
+<text x="1284" y="409" font-size="12.5" fill="#1e293b">VAL-047  Expiry month 1–12</text>
+<text x="1284" y="428" font-size="12.5" fill="#1e293b">VAL-048  Expiry year 1950–2099</text>
+<text x="1284" y="447" font-size="12.5" fill="#1e293b">VAL-049  No-change + concurrency  ← save</text>
+<rect x="40" y="560" width="330" height="86" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="40" y="560" width="330" height="26" rx="8" fill="#fee2e2" stroke="#475569" stroke-width="1.2"/>
+<rect x="40" y="573" width="330" height="13" fill="#fee2e2"/>
+<line x1="40" y1="586" x2="370" y2="586" stroke="#475569" stroke-width="1.2"/>
+<text x="52" y="578.5" font-size="13.5" font-weight="bold" fill="#0f172a">Transaction View — COTRN01C</text>
+<text x="54" y="604" font-size="12.5" fill="#1e293b">VAL-052  Tran ID required [K]</text>
+<text x="54" y="623" font-size="12.5" fill="#1e293b">VAL-053  Transaction exists  ← 052</text>
+<rect x="40" y="666" width="330" height="200" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="40" y="666" width="330" height="26" rx="8" fill="#e0e7ff" stroke="#475569" stroke-width="1.2"/>
+<rect x="40" y="679" width="330" height="13" fill="#e0e7ff"/>
+<line x1="40" y1="692" x2="370" y2="692" stroke="#475569" stroke-width="1.2"/>
+<text x="52" y="684.5" font-size="13.5" font-weight="bold" fill="#0f172a">User Admin — COUSR00C/01C/02C/03C</text>
+<text x="54" y="710" font-size="12.5" fill="#1e293b">VAL-074  Row selection 'U'/'D'</text>
+<text x="54" y="729" font-size="12.5" fill="#1e293b">VAL-075  Add: 5 fields required</text>
+<text x="54" y="748" font-size="12.5" fill="#1e293b">VAL-076  New User ID unique  ← 075</text>
+<text x="54" y="767" font-size="12.5" fill="#1e293b">VAL-077  Update lookup: User ID required [K]</text>
+<text x="54" y="786" font-size="12.5" fill="#1e293b">VAL-078  Update save: 4 fields required</text>
+<text x="54" y="805" font-size="12.5" fill="#1e293b">VAL-079  User exists  ← 077/080</text>
+<text x="54" y="824" font-size="12.5" fill="#1e293b">VAL-080  Delete: User ID required [K]</text>
+<text x="54" y="843" font-size="12.5" fill="#1e293b">VAL-081  Change detection  ← 079</text>
+<rect x="400" y="560" width="430" height="238" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="400" y="560" width="430" height="26" rx="8" fill="#fee2e2" stroke="#475569" stroke-width="1.2"/>
+<rect x="400" y="573" width="430" height="13" fill="#fee2e2"/>
+<line x1="400" y1="586" x2="830" y2="586" stroke="#475569" stroke-width="1.2"/>
+<text x="412" y="578.5" font-size="13.5" font-weight="bold" fill="#0f172a">Transaction Add — COTRN02C (COTRN02)</text>
+<text x="414" y="604" font-size="12.5" fill="#1e293b">VAL-054  Account ID or Card number required [K]</text>
+<text x="414" y="623" font-size="12.5" fill="#1e293b">VAL-055  Entered key must be numeric  ← 054</text>
+<text x="414" y="642" font-size="12.5" fill="#1e293b">VAL-056  Key exists in card XREF  ← 055</text>
+<text x="414" y="661" font-size="12.5" fill="#1e293b">VAL-057  All 11 transaction data fields required</text>
+<text x="414" y="680" font-size="12.5" fill="#1e293b">VAL-058  Type CD and Category CD numeric</text>
+<text x="414" y="699" font-size="12.5" fill="#1e293b">VAL-059  Amount format -99999999.99 exactly</text>
+<text x="414" y="718" font-size="12.5" fill="#1e293b">VAL-060  Dates YYYY-MM-DD, real dates [D]</text>
+<text x="414" y="737" font-size="12.5" fill="#1e293b">VAL-061  Merchant ID numeric</text>
+<text x="414" y="756" font-size="12.5" fill="#1e293b">VAL-062  Confirm with Y (Y/y, N/n, blank)</text>
+<text x="414" y="775" font-size="12.5" fill="#1e293b">VAL-063  Tran ID unique  ← 062</text>
+<rect x="860" y="560" width="380" height="143" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="860" y="560" width="380" height="26" rx="8" fill="#fae8ff" stroke="#475569" stroke-width="1.2"/>
+<rect x="860" y="573" width="380" height="13" fill="#fae8ff"/>
+<line x1="860" y1="586" x2="1240" y2="586" stroke="#475569" stroke-width="1.2"/>
+<text x="872" y="578.5" font-size="13.5" font-weight="bold" fill="#0f172a">Bill Payment — COBIL00C (COBIL00)</text>
+<text x="874" y="604" font-size="12.5" fill="#1e293b">VAL-064  Account ID required [K]</text>
+<text x="874" y="623" font-size="12.5" fill="#1e293b">VAL-065  Account exists  ← 064</text>
+<text x="874" y="642" font-size="12.5" fill="#1e293b">VAL-066  Current balance must be positive  ← 065</text>
+<text x="874" y="661" font-size="12.5" fill="#1e293b">VAL-067  Confirm with Y (Y/y, N/n, blank)</text>
+<text x="874" y="680" font-size="12.5" fill="#1e293b">VAL-068  Tran ID unique  ← 067</text>
+<rect x="1270" y="560" width="370" height="143" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="1.2"/>
+<rect x="1270" y="560" width="370" height="26" rx="8" fill="#ffedd5" stroke="#475569" stroke-width="1.2"/>
+<rect x="1270" y="573" width="370" height="13" fill="#ffedd5"/>
+<line x1="1270" y1="586" x2="1640" y2="586" stroke="#475569" stroke-width="1.2"/>
+<text x="1282" y="578.5" font-size="13.5" font-weight="bold" fill="#0f172a">Reports — CORPT00C (CORPT00)</text>
+<text x="1284" y="604" font-size="12.5" fill="#1e293b">VAL-069  Report type required (M/Y/Custom)</text>
+<text x="1284" y="623" font-size="12.5" fill="#1e293b">VAL-070  Custom: 6 date parts required  ← 069</text>
+<text x="1284" y="642" font-size="12.5" fill="#1e293b">VAL-071  Parts numeric; mo ≤ 12, day ≤ 31  ← 070</text>
+<text x="1284" y="661" font-size="12.5" fill="#1e293b">VAL-072  Real calendar dates  ← 071 [D]</text>
+<text x="1284" y="680" font-size="12.5" fill="#1e293b">VAL-073  Confirm with Y or N</text>
+<rect x="40" y="900" width="1600" height="240" rx="10" fill="#f8fafc" stroke="#334155" stroke-width="1.5" stroke-dasharray="6,4"/>
+<text x="56" y="928" font-size="15" font-weight="bold" fill="#0f172a">Shared Validation Infrastructure</text>
+<rect x="56" y="945" width="378" height="180" rx="8" fill="#e2e8f0" stroke="#475569" stroke-width="1.2"/>
+<text x="68" y="968" font-size="13" font-weight="bold" fill="#0f172a">[G]  Generic edit paragraphs</text>
+<text x="68" y="988" font-size="11.5" fill="#1e293b">COACTUPC.cbl lines 1824–2223, driven by</text>
+<text x="68" y="1005" font-size="11.5" fill="#1e293b">WS-EDIT-VARIABLE-NAME / …-ALPHANUM-LENGTH:</text>
+<text x="68" y="1022" font-size="11.5" fill="#1e293b">1215-EDIT-MANDATORY, 1220-EDIT-YESNO,</text>
+<text x="68" y="1039" font-size="11.5" fill="#1e293b">1225/1235-EDIT-ALPHA (reqd/opt),</text>
+<text x="68" y="1056" font-size="11.5" fill="#1e293b">1230/1240-EDIT-ALPHANUM (reqd/opt),</text>
+<text x="68" y="1073" font-size="11.5" fill="#1e293b">1245-EDIT-NUM-REQD,</text>
+<text x="68" y="1090" font-size="11.5" fill="#1e293b">1250-EDIT-SIGNED-9V2 (TEST-NUMVAL-C)</text>
+<rect x="446" y="945" width="378" height="180" rx="8" fill="#e2e8f0" stroke="#475569" stroke-width="1.2"/>
+<text x="458" y="968" font-size="13" font-weight="bold" fill="#0f172a">[D]  Date infrastructure</text>
+<text x="458" y="988" font-size="11.5" fill="#1e293b">CSUTLDPY.cpy lines 18–372 (+ CSUTLDWY.cpy flags):</text>
+<text x="458" y="1005" font-size="11.5" fill="#1e293b">EDIT-DATE-CCYYMMDD, EDIT-YEAR-CCYY (century</text>
+<text x="458" y="1022" font-size="11.5" fill="#1e293b">19/20), EDIT-MONTH, EDIT-DAY,</text>
+<text x="458" y="1039" font-size="11.5" fill="#1e293b">EDIT-DAY-MONTH-YEAR (leap-year Feb-29),</text>
+<text x="458" y="1056" font-size="11.5" fill="#1e293b">EDIT-DATE-LE → CSUTLDTC.cbl (LE CEEDAYS</text>
+<text x="458" y="1073" font-size="11.5" fill="#1e293b">real-date check), EDIT-DATE-OF-BIRTH</text>
+<text x="458" y="1090" font-size="11.5" fill="#1e293b">(no future DOB). Also called by COTRN02C, CORPT00C</text>
+<rect x="836" y="945" width="378" height="180" rx="8" fill="#e2e8f0" stroke="#475569" stroke-width="1.2"/>
+<text x="848" y="968" font-size="13" font-weight="bold" fill="#0f172a">[L]  Lookup tables — CSLKPCDY.cpy</text>
+<text x="848" y="988" font-size="11.5" fill="#1e293b">VALID-PHONE-AREA-CODE (line 30) —</text>
+<text x="848" y="1005" font-size="11.5" fill="#1e293b">North America general-purpose area codes</text>
+<text x="848" y="1022" font-size="11.5" fill="#1e293b">VALID-GENERAL-PURP-CODE (line 521)</text>
+<text x="848" y="1039" font-size="11.5" fill="#1e293b">VALID-US-STATE-CODE (line 1013)</text>
+<text x="848" y="1056" font-size="11.5" fill="#1e293b">VALID-US-STATE-ZIP-CD2-COMBO (line 1073) —</text>
+<text x="848" y="1073" font-size="11.5" fill="#1e293b">state + first-2-zip-digit combinations</text>
+<rect x="1226" y="945" width="378" height="180" rx="8" fill="#e2e8f0" stroke="#475569" stroke-width="1.2"/>
+<text x="1238" y="968" font-size="13" font-weight="bold" fill="#0f172a">[K]  Shared key/field patterns</text>
+<text x="1238" y="988" font-size="11.5" fill="#1e293b">Account ID: PIC 9(11), non-zero — COACTVWC,</text>
+<text x="1238" y="1005" font-size="11.5" fill="#1e293b">COACTUPC, COCRDLIC/SLC/UPC, COTRN02C, COBIL00C</text>
+<text x="1238" y="1022" font-size="11.5" fill="#1e293b">Card number: 16-digit — card programs, COTRN02C</text>
+<text x="1238" y="1039" font-size="11.5" fill="#1e293b">Tran ID: 16-char key — COTRN00C/01C/02C, COBIL00C</text>
+<text x="1238" y="1056" font-size="11.5" fill="#1e293b">User ID: 8-char key — COSGN00C, COUSR*</text>
+<text x="1238" y="1073" font-size="11.5" fill="#1e293b">Y/N indicators and S/U/D selection codes</text>
+<path d="M 385 520 V 896" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<text x="392" y="545" font-size="11" fill="#64748b">uses [G][D][L]</text>
+<path d="M 615 798 V 941" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<text x="622" y="875" font-size="11" fill="#64748b">[D]</text>
+<path d="M 1455 703 V 870 H 700 V 941" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<text x="1462" y="790" font-size="11" fill="#64748b">[D]</text>
+<path d="M 1050 703 V 885 H 1415 V 941" fill="none" stroke="#64748b" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<text x="1057" y="790" font-size="11" fill="#64748b">[K]</text>
+</svg>

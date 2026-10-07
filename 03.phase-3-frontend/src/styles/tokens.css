@@ -1,0 +1,90 @@
+/*
+ * CardDemo design tokens (Step 2).
+ * Values follow /code/.plans/designs/design-plan.json (light theme).
+ *
+ * Breakpoints are used as literal values in media queries because CSS
+ * custom properties cannot appear there:
+ *   640px  — mobile -> tablet (tables switch to stacked cards below this)
+ *   1024px — tablet -> desktop (side navigation appears at this width)
+ */
+:root {
+  /* Type */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --line-height: 1.5;
+
+  /* Color */
+  --color-bg: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef2f9;
+  --color-surface-sunken: #e4e9f3;
+  --color-border: #d9dfeb;
+  --color-border-strong: #b9c2d6;
+  --color-text: #172033;
+  --color-text-muted: #5a647a;
+  --color-text-subtle: #66708a;
+  --color-text-inverse: #ffffff;
+  --color-primary: #3558c9;
+  --color-primary-hover: #2b49aa;
+  --color-primary-contrast: #ffffff;
+  --color-primary-soft: #e8eefb;
+  --color-success: #1b7a45;
+  --color-success-bg: #e4f4ea;
+  --color-warning: #8a5a00;
+  --color-warning-bg: #fff3dc;
+  --color-danger: #b3261e;
+  --color-danger-hover: #9a1f18;
+  --color-danger-bg: #fdecea;
+  --color-info: #2a4db5;
+  --color-info-bg: #e8eefb;
+  --color-focus: #3558c9;
+
+  /* Navy navigation surfaces (sidebar, mobile app bar, drawer, confirm bar) */
+  --color-nav: #16224a;
+  --color-nav-raised: #1f2f63;
+  --color-nav-hover: rgb(255 255 255 / 12%);
+  --color-nav-text: #dfe6f7;
+  --color-nav-text-muted: #9fb0dd;
+  --color-nav-text-soft: #b7c4e8;
+
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgb(23 32 51 / 6%);
+  --shadow-md: 0 1px 2px rgb(23 32 51 / 6%), 0 8px 24px rgb(23 32 51 / 6%);
+  --shadow-float: 0 1rem 3rem rgb(23 32 51 / 12%);
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease: ease-out;
+
+  /* Layout */
+  --sidebar-width: 248px;
+  --topbar-height: 64px;
+  --appbar-height: 56px;
+  --content-max: 1200px;
+  --control-height: 40px;
+  --touch-target: 44px;
+}
