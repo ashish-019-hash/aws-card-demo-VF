@@ -87,6 +87,52 @@ export async function fetchTransactionPage(startId: string | undefined, page: nu
   }
 }
 
+/** Legacy COTRN02C xref messages (READ-CXACAIX-FILE / READ-CCXREF-FILE). */
+export const transactionKeyMessages = {
+  accountNotFound: 'Account ID NOT found.',
+  cardNotFound: 'Card Number NOT found.',
+} as const
+
+export type ResolvedTransactionKeys =
+  | { ok: true; accountId: string; cardNumber: string }
+  | { ok: false; field: 'accountId' | 'cardNumber'; message: string }
+
+/**
+ * Resolves the entered target keys through the card cross-reference before a
+ * copy, mirroring legacy VALIDATE-INPUT-KEY-FIELDS: an entered account takes
+ * precedence and is looked up in the by-account xref (overwriting the card
+ * number from it), otherwise the card is looked up (filling the account).
+ * This matches COTRN02C, where a valid account always selects its linked card.
+ */
+export async function resolveTransactionKeys(accountId: string, cardNumber: string): Promise<ResolvedTransactionKeys> {
+  const account = accountId.trim()
+  const card = cardNumber.trim()
+  if (account) {
+    let cards
+    try {
+      cards = await api.cards.byAccount(account)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return { ok: false, field: 'accountId', message: transactionKeyMessages.accountNotFound }
+      }
+      throw error
+    }
+    if (cards.length === 0) {
+      return { ok: false, field: 'accountId', message: transactionKeyMessages.accountNotFound }
+    }
+    return { ok: true, accountId: account, cardNumber: cards[0].cardNumber }
+  }
+  try {
+    const dto = await api.cards.get(card)
+    return { ok: true, accountId: String(dto.accountId).padStart(11, '0'), cardNumber: card }
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return { ok: false, field: 'cardNumber', message: transactionKeyMessages.cardNotFound }
+    }
+    throw error
+  }
+}
+
 /** The most recent transaction on file, or null when the file is empty (legacy F5). */
 export async function fetchLastTransaction(): Promise<Transaction | null> {
   const probe = await api.transactions.list(0, 1)

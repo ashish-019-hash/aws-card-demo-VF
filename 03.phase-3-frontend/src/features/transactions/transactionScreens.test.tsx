@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -6,7 +6,7 @@ import { SESSION_STORAGE_KEY, SessionProvider } from '../../hooks/useSession'
 import { TransactionAddPage } from '../../pages/TransactionAddPage'
 import { TransactionListPage } from '../../pages/TransactionListPage'
 import { TransactionViewPage } from '../../pages/TransactionViewPage'
-import { ApiError, api, type PageResponse, type TransactionDto } from '../../services/api'
+import { ApiError, api, type CreditCardDto, type PageResponse, type TransactionDto } from '../../services/api'
 
 vi.mock('../../services/api', () => ({
   api: {
@@ -14,6 +14,10 @@ vi.mock('../../services/api', () => ({
       list: vi.fn(),
       get: vi.fn(),
       create: vi.fn(),
+    },
+    cards: {
+      byAccount: vi.fn(),
+      get: vi.fn(),
     },
   },
   ApiError: class ApiError extends Error {
@@ -38,6 +42,21 @@ afterEach(() => {
 const list = vi.mocked(api.transactions.list)
 const get = vi.mocked(api.transactions.get)
 const create = vi.mocked(api.transactions.create)
+const cardsByAccount = vi.mocked(api.cards.byAccount)
+const cardsGet = vi.mocked(api.cards.get)
+
+/** Minimal card DTO for the copy-last cross-reference resolution. */
+function cardDto(cardNumber: string, accountId: number): CreditCardDto {
+  return {
+    cardNumber,
+    version: 1,
+    accountId,
+    cvvCode: 123,
+    embossedName: 'JANE DOE',
+    expirationDate: '2027-05-31',
+    activeStatus: 'Y',
+  }
+}
 
 function transactionDto(idSuffix: string, overrides: Partial<TransactionDto> = {}): TransactionDto {
   return {
@@ -350,6 +369,7 @@ describe('TransactionAddPage', () => {
         totalPages: 1,
       }),
     )
+    cardsByAccount.mockResolvedValue([cardDto('4000999988887777', 42)])
     renderAt('/transactions/add')
     // The entered target keys must survive the copy: legacy COTRN02C's
     // COPY-LAST-TRAN-DATA never touches the account or card fields.
@@ -364,6 +384,8 @@ describe('TransactionAddPage', () => {
     expect(screen.getByLabelText(/Amount/)).toHaveValue('+00000021.67')
     expect(screen.getByLabelText(/Merchant ID/)).toHaveValue('411000125')
     expect(screen.getByLabelText(/Original date/)).toHaveValue('2026-09-28')
+    // The keys were resolved through the cross-reference before copying.
+    expect(cardsByAccount).toHaveBeenCalledWith('00000000042')
     expect(list).toHaveBeenCalledWith(0, 1)
   })
 
@@ -400,12 +422,14 @@ describe('TransactionAddPage', () => {
   })
 
   it('ignores a copy-last response that resolves after the form was cleared', async () => {
+    cardsByAccount.mockResolvedValue([cardDto('4000999988887777', 42)])
     let resolveList: (page: PageResponse<TransactionDto>) => void = () => {}
     list.mockImplementation(
       () => new Promise<PageResponse<TransactionDto>>((resolve) => (resolveList = resolve)),
     )
 
     renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Account number/), '00000000042')
     await userEvent.type(screen.getByLabelText(/Merchant name/), 'TYPED MERCHANT')
     await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
     // Clear supersedes the in-flight copy request.
@@ -419,15 +443,151 @@ describe('TransactionAddPage', () => {
     expect(screen.getByLabelText(/Description/)).toHaveValue('')
   })
 
-  it('does not copy the stored card number into empty key fields', async () => {
-    list.mockResolvedValue(
-      pageOf([transactionDto('125', { description: 'PANERA BREAD #4418' })], { totalElements: 1, totalPages: 1 }),
+  it('a copy response arriving after Review cannot change the reviewed values', async () => {
+    cardsByAccount.mockResolvedValue([cardDto('4000123456789010', 10000000001)])
+    create.mockResolvedValue(transactionDto('126'))
+    // The copy's last-transaction fetch hangs; later fetches (the save path)
+    // resolve normally.
+    let resolveStaleCopy: (page: PageResponse<TransactionDto>) => void = () => {}
+    let firstListCall = true
+    list.mockImplementation(() => {
+      if (firstListCall) {
+        firstListCall = false
+        return new Promise<PageResponse<TransactionDto>>((resolve) => (resolveStaleCopy = resolve))
+      }
+      return Promise.resolve(pageOf([transactionDto('125')], { totalElements: 1, totalPages: 1 }))
+    })
+
+    const { container } = renderAt('/transactions/add')
+    await fillValidAddForm()
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    // While the copy is in flight the Review button is unavailable…
+    expect(screen.getByRole('button', { name: 'Review and add' })).toBeDisabled()
+    // …but an implicit (Enter-key) submission still reaches the form, and
+    // entering review supersedes the copy.
+    fireEvent.submit(container.querySelector('form') as HTMLFormElement)
+    expect(await screen.findByText('Confirm to add this transaction.')).toBeInTheDocument()
+
+    // The stale copy resolves after review: nothing on screen may change.
+    resolveStaleCopy(
+      pageOf([transactionDto('125', { description: 'STALE COPY', merchantName: 'STALE MERCHANT' })], {
+        totalElements: 1,
+        totalPages: 1,
+      }),
     )
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.getByLabelText(/Description/)).toHaveValue('TEST PURCHASE')
+    expect(screen.getByLabelText(/Merchant name/)).toHaveValue('TEST MERCHANT')
+    expect(screen.getByText('Confirm to add this transaction.')).toBeInTheDocument()
+
+    // Yes writes the reviewed snapshot, untouched by the stale copy.
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, add' }))
+    expect(
+      await screen.findByText('Transaction added successfully. Your Tran ID is 0000000000000126.'),
+    ).toBeInTheDocument()
+    expect(create.mock.calls[0][0]).toMatchObject({ description: 'TEST PURCHASE', merchantName: 'TEST MERCHANT' })
+  })
+
+  it('fills a blank card number from the account cross-reference, not from the copied transaction', async () => {
+    // The last transaction on file is for a DIFFERENT card than the entered
+    // account's card: the blank field must come from the xref, never the copy.
+    list.mockResolvedValue(
+      pageOf([transactionDto('125', { description: 'PANERA BREAD #4418', cardNumber: '4000123456789010' })], {
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    )
+    cardsByAccount.mockResolvedValue([cardDto('4000999988887777', 42)])
     renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Account number/), '00000000042')
     await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
 
     expect(await screen.findByLabelText(/Description/)).toHaveValue('PANERA BREAD #4418')
-    expect(screen.getByLabelText(/Account number/)).toHaveValue('')
-    expect(screen.getByLabelText(/Card number/)).toHaveValue('')
+    expect(screen.getByLabelText(/Account number/)).toHaveValue('00000000042')
+    expect(screen.getByLabelText(/Card number/)).toHaveValue('4000999988887777')
+  })
+
+  it('fills a blank account from the card cross-reference when only the card is entered', async () => {
+    list.mockResolvedValue(
+      pageOf([transactionDto('125', { description: 'PANERA BREAD #4418' })], { totalElements: 1, totalPages: 1 }),
+    )
+    cardsGet.mockResolvedValue(cardDto('4000999988887777', 42))
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Card number/), '4000999988887777')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    expect(await screen.findByLabelText(/Description/)).toHaveValue('PANERA BREAD #4418')
+    expect(cardsGet).toHaveBeenCalledWith('4000999988887777')
+    expect(screen.getByLabelText(/Account number/)).toHaveValue('00000000042')
+    expect(screen.getByLabelText(/Card number/)).toHaveValue('4000999988887777')
+  })
+
+  it('refuses to copy when no target key is entered (RULE-VAL-054)', async () => {
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Merchant name/), 'TYPED MERCHANT')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    expect(await screen.findByText('Account or Card Number must be entered.')).toBeInTheDocument()
+    // Nothing was fetched and nothing was copied.
+    expect(list).not.toHaveBeenCalled()
+    expect(cardsByAccount).not.toHaveBeenCalled()
+    expect(cardsGet).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/Merchant name/)).toHaveValue('TYPED MERCHANT')
+    expect(screen.getByLabelText(/Description/)).toHaveValue('')
+  })
+
+  it('refuses to copy when a target key is malformed (RULE-VAL-055)', async () => {
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Account number/), '1000000000A')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    // The message can appear both as the page message and as the field error.
+    expect((await screen.findAllByText('Account ID must be Numeric.')).length).toBeGreaterThan(0)
+    expect(list).not.toHaveBeenCalled()
+    expect(cardsByAccount).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/Description/)).toHaveValue('')
+  })
+
+  it('refuses to copy when the entered account does not exist', async () => {
+    cardsByAccount.mockRejectedValue(new ApiError('Account not found', 404))
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Account number/), '00000000099')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    expect(await screen.findByText('Account ID NOT found.')).toBeInTheDocument()
+    expect(list).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/Account number/)).toHaveValue('00000000099')
+    expect(screen.getByLabelText(/Description/)).toHaveValue('')
+  })
+
+  it('uses the account cross-reference card when both entered keys disagree', async () => {
+    cardsByAccount.mockResolvedValue([cardDto('4000999988887777', 42)])
+    list.mockResolvedValue(
+      pageOf([transactionDto('125', { description: 'ACCOUNT PRECEDENCE COPY' })], {
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    )
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Account number/), '00000000042')
+    await userEvent.type(screen.getByLabelText(/Card number/), '4000123456789010')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    expect(await screen.findByLabelText(/Description/)).toHaveValue('ACCOUNT PRECEDENCE COPY')
+    expect(list).toHaveBeenCalled()
+    expect(screen.getByLabelText(/Account number/)).toHaveValue('00000000042')
+    expect(screen.getByLabelText(/Card number/)).toHaveValue('4000999988887777')
+  })
+
+  it('refuses to copy when the entered card does not exist', async () => {
+    cardsGet.mockRejectedValue(new ApiError('Card not found', 404))
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Card number/), '4000123456789010')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    expect(await screen.findByText('Card Number NOT found.')).toBeInTheDocument()
+    expect(list).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/Description/)).toHaveValue('')
   })
 })

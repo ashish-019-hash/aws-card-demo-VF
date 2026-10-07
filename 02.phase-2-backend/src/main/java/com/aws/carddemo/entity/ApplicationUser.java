@@ -29,4 +29,8 @@ public class ApplicationUser {
     private String passwordHash;
 
     @Size(max = 1) @Column(name = "user_type", length = 1) private String userType;
+
+    // Bumped on every password or role change; sessions carrying an older value are rejected.
+    @Column(name = "security_version", nullable = false, columnDefinition = "bigint default 0 not null")
+    private long securityVersion;
 }

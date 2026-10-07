@@ -93,6 +93,17 @@ class SessionSecurityTest {
     }
 
     @Test
+    void staleSessionIsRejectedEvenWhenRegistryRevocationIsBypassed() throws Exception {
+        seedUser("SESUSR07", "U");
+        MockHttpSession session = login("SESUSR07");
+        mvc.perform(get("/api/accounts").session(session)).andExpect(status().isOk());
+        // Delete directly through the repository, bypassing SessionRevocationService entirely:
+        // the per-request existence/security-version check must still reject the session.
+        users.deleteById("SESUSR07");
+        mvc.perform(get("/api/accounts").session(session)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void nameOnlyChangeKeepsActiveSessions() throws Exception {
         seedUser("SESUSR06", "U");
         MockHttpSession session = login("SESUSR06");

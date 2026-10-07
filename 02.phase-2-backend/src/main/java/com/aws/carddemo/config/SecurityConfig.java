@@ -1,5 +1,7 @@
 package com.aws.carddemo.config;
 
+import com.aws.carddemo.repository.ApplicationUserRepository;
+import com.aws.carddemo.security.UserSecurityVersionFilter;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +20,7 @@ import org.springframework.security.web.authentication.session.CompositeSessionA
 import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
@@ -32,13 +35,15 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, CsrfTokenRepository csrfTokenRepository,
-            SecurityContextRepository securityContextRepository, SessionRegistry sessionRegistry) throws Exception {
+            SecurityContextRepository securityContextRepository, SessionRegistry sessionRegistry,
+            ApplicationUserRepository users) throws Exception {
         return http
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .ignoringRequestMatchers("/api/auth/login"))
                 .cors(cors -> { })
                 .securityContext(context -> context.securityContextRepository(securityContextRepository))
+                .addFilterAfter(new UserSecurityVersionFilter(users), SecurityContextHolderFilter.class)
                 .sessionManagement(session -> session
                         .maximumSessions(-1)
                         .sessionRegistry(sessionRegistry)
@@ -52,7 +57,9 @@ public class SecurityConfig {
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, exception) -> response.sendError(HttpStatus.UNAUTHORIZED.value()))
                         .accessDeniedHandler((request, response, exception) -> response.sendError(HttpStatus.FORBIDDEN.value())))
-                .logout(logout -> logout.logoutUrl("/api/auth/logout").deleteCookies("JSESSIONID"))
+                .logout(logout -> logout.logoutUrl("/api/auth/logout").deleteCookies("JSESSIONID")
+                        .logoutSuccessHandler((request, response, authentication) ->
+                                response.setStatus(HttpStatus.NO_CONTENT.value())))
                 .build();
     }
 

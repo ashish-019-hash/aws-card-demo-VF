@@ -96,6 +96,31 @@ describe('expired-session recovery', () => {
     unsubscribe()
   })
 
+  it('treats a 401 from the CSRF bootstrap itself as an expired session', async () => {
+    const expired = vi.fn()
+    const unsubscribe = onUnauthorized(expired)
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ title: 'Unauthorized' }, 401))
+    vi.stubGlobal('fetch', fetchMock)
+
+    // The mutation never reaches its own endpoint: the CSRF bootstrap is
+    // rejected first, which must clear state and notify just like a 401 from
+    // the protected endpoint would.
+    await expect(
+      apiRequest('/api/users/USER0001', { method: 'PUT', body: JSON.stringify({ firstName: 'Alex' }) }),
+    ).rejects.toMatchObject({ status: 401 })
+    expect(expired).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/auth/csrf')
+
+    // After reauthentication the next mutation fetches a fresh token.
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ headerName: 'X-XSRF-TOKEN', token: 'fresh-token' }))
+      .mockResolvedValueOnce(jsonResponse({ id: 'USER0001' }))
+    await apiRequest('/api/users/USER0001', { method: 'PUT', body: JSON.stringify({ firstName: 'Alex' }) })
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/auth/csrf')
+    unsubscribe()
+  })
+
   it('stops notifying after a listener unsubscribes', async () => {
     const expired = vi.fn()
     const unsubscribe = onUnauthorized(expired)

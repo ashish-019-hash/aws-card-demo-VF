@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SESSION_STORAGE_KEY, SessionProvider } from '../hooks/useSession'
 import { ApiError, api } from '../services/api'
@@ -66,6 +66,31 @@ function pageOf(users: UserDto[], page: number, size: number): PageResponse<User
       totalPages: Math.ceil(users.length / size),
     },
   }
+}
+
+/**
+ * Like renderAdminPage, but adds an in-app link to another URL on the SAME
+ * route so tests can change the :userId param without unmounting the page.
+ */
+function renderAdminPageWithNav(
+  ui: ReactNode,
+  { routePath, url, navTo }: { routePath: string; url: string; navTo: string },
+) {
+  window.sessionStorage.setItem(
+    SESSION_STORAGE_KEY,
+    JSON.stringify({ userId: 'ADMIN001', userType: 'A' }),
+  )
+  return render(
+    <SessionProvider>
+      <MemoryRouter initialEntries={[url]}>
+        <Link to={navTo}>go to next user</Link>
+        <Routes>
+          <Route path={routePath} element={ui} />
+          <Route path="*" element={<div>other route</div>} />
+        </Routes>
+      </MemoryRouter>
+    </SessionProvider>,
+  )
 }
 
 /** Renders a user-administration page with an admin session (SCREEN-14..17 are admin-only). */
@@ -267,6 +292,40 @@ describe('UserUpdatePage', () => {
     expect(searchField()).not.toBeDisabled()
   })
 
+  it('releases the busy state when the route userId changes while a save is in flight', async () => {
+    vi.mocked(api.users.get).mockImplementation((id) =>
+      Promise.resolve(user(id, id === 'USER0002' ? 'Marcus' : 'Nina', 'Lee')),
+    )
+    let resolveUpdate: (value: UserDto) => void = () => {}
+    vi.mocked(api.users.update).mockImplementation(
+      () => new Promise<UserDto>((resolve) => (resolveUpdate = resolve)),
+    )
+    renderAdminPageWithNav(<UserUpdatePage />, {
+      routePath: '/admin/users/update/:userId?',
+      url: '/admin/users/update/USER0002',
+      navTo: '/admin/users/update/USER0003',
+    })
+    expect(await screen.findByDisplayValue('Marcus')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText(/Password/), 'newpass1')
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(screen.getByRole('button', { name: 'Fetch user' })).toBeDisabled()
+
+    // Navigating to another userId on the same route keeps this component
+    // mounted; it must drop the pending save's busy state and look up the
+    // new user instead of staying locked forever.
+    await userEvent.click(screen.getByRole('link', { name: 'go to next user' }))
+    expect(await screen.findByDisplayValue('Nina')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fetch user' })).not.toBeDisabled()
+
+    // The superseded save's late completion must not overwrite the new lookup
+    // or re-lock the controls.
+    resolveUpdate(user('USER0002', 'Marcus', 'Lee'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.queryByText('User USER0002 has been updated.')).not.toBeInTheDocument()
+    expect(screen.getByDisplayValue('Nina')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fetch user' })).not.toBeDisabled()
+  })
+
   it('maps the backend no-change rejection to the documented message (RULE-VAL-081)', async () => {
     vi.mocked(api.users.get).mockResolvedValue(user('USER0002', 'Marcus', 'Lee'))
     vi.mocked(api.users.update).mockRejectedValue(
@@ -353,6 +412,37 @@ describe('UserDeletePage', () => {
     await waitFor(() =>
       expect(screen.getByText('User USER0008 has been deleted.')).toBeInTheDocument(),
     )
+    expect(screen.getByRole('button', { name: 'Fetch user' })).not.toBeDisabled()
+  })
+
+  it('releases the busy state when the route userId changes while a delete is in flight', async () => {
+    vi.mocked(api.users.get).mockImplementation((id) =>
+      Promise.resolve(user(id, id === 'USER0008' ? 'Sam' : 'Nina', 'Patel')),
+    )
+    let resolveDelete: () => void = () => {}
+    vi.mocked(api.users.delete).mockImplementation(
+      () => new Promise<void>((resolve) => (resolveDelete = resolve)),
+    )
+    renderAdminPageWithNav(<UserDeletePage />, {
+      routePath: '/admin/users/delete/:userId?',
+      url: '/admin/users/delete/USER0008',
+      navTo: '/admin/users/delete/USER0009',
+    })
+    expect(await screen.findByRole('heading', { name: 'Confirm deletion' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Delete user' }))
+    expect(screen.getByRole('button', { name: 'Fetch user' })).toBeDisabled()
+
+    // A userId change on the same route keeps this component mounted: the
+    // pending delete is superseded and the controls must come back.
+    await userEvent.click(screen.getByRole('link', { name: 'go to next user' }))
+    expect(await screen.findByText('Nina')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fetch user' })).not.toBeDisabled()
+
+    // The superseded delete's late completion is ignored.
+    resolveDelete()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.queryByText('User USER0008 has been deleted.')).not.toBeInTheDocument()
+    expect(screen.getByText('Nina')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Fetch user' })).not.toBeDisabled()
   })
 

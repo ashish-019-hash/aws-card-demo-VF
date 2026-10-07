@@ -159,15 +159,28 @@ class DataIntegrityIntegrationTest {
         TransactionDto byCard = transactionData.create(transactionRequest("9000000000000002", null, OTHER_CARD_NUMBER));
         assertThat(byCard.cardNumber()).isEqualTo(OTHER_CARD_NUMBER);
 
-        assertThatThrownBy(() -> transactionData.create(transactionRequest("9000000000000003", ACCOUNT_ID, OTHER_CARD_NUMBER)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("does not belong");
+        // COTRN02C account precedence: the account's cross-reference card overwrites
+        // whatever card number was typed alongside it.
+        TransactionDto accountWins = transactionData.create(transactionRequest("9000000000000003", ACCOUNT_ID, OTHER_CARD_NUMBER));
+        assertThat(accountWins.cardNumber()).isEqualTo(CARD_NUMBER);
 
         // A card with no cross-reference entry mirrors the legacy CCXREF NOTFND error.
         assertThatThrownBy(() -> transactionData.create(transactionRequest("9000000000000004", null, UNLINKED_CARD_NUMBER)))
                 .isInstanceOf(ResourceNotFoundException.class);
-        assertThat(transactions.existsById("9000000000000003")).isFalse();
         assertThat(transactions.existsById("9000000000000004")).isFalse();
+    }
+
+    @Test
+    void unknownTransactionTypeOrCategoryIsReportedAsNotFoundRatherThanDuplicate() {
+        assertThatThrownBy(() -> transactionData.create(transactionRequest("9000000000000020", ACCOUNT_ID, null, "99", 1)))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Transaction type");
+        // Category 42 does not exist under the valid type 01.
+        assertThatThrownBy(() -> transactionData.create(transactionRequest("9000000000000021", ACCOUNT_ID, null, "01", 42)))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Transaction category");
+        assertThat(transactions.existsById("9000000000000020")).isFalse();
+        assertThat(transactions.existsById("9000000000000021")).isFalse();
     }
 
     @Test
@@ -209,7 +222,11 @@ class DataIntegrityIntegrationTest {
     }
 
     private TransactionRequest transactionRequest(String id, Long accountId, String cardNumber) {
-        return new TransactionRequest(id, accountId, "01", 1, "POS TERM", "Purchase", "+00000001.00",
+        return transactionRequest(id, accountId, cardNumber, "01", 1);
+    }
+
+    private TransactionRequest transactionRequest(String id, Long accountId, String cardNumber, String typeCode, int categoryCode) {
+        return new TransactionRequest(id, accountId, typeCode, categoryCode, "POS TERM", "Purchase", "+00000001.00",
                 "000000001", "Merchant", "City", "10001", cardNumber, "2024-01-01", "2024-01-02", "Y");
     }
 

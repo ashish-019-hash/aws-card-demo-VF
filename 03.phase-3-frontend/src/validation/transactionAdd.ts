@@ -132,3 +132,29 @@ export const transactionAddSchema = z
   })
 
 export type TransactionAddFormValues = z.infer<typeof transactionAddSchema>
+
+export interface TransactionKeyError {
+  field: 'accountId' | 'cardNumber'
+  message: string
+}
+
+/**
+ * The schema's target-key rules (RULE-VAL-054/055) as a standalone check, for
+ * actions that run outside form submission — legacy COTRN02C performs
+ * VALIDATE-INPUT-KEY-FIELDS before COPY-LAST-TRAN-DATA, so copy-last must
+ * apply the same rules before anything is copied.
+ */
+export function validateTransactionKeys(accountId: string, cardNumber: string): TransactionKeyError | null {
+  const account = accountId.trim()
+  const card = cardNumber.trim()
+  if (!account && !card) {
+    return { field: 'accountId', message: transactionAddMessages.accountOrCardRequired }
+  }
+  if (account && !DIGITS.test(account)) {
+    return { field: 'accountId', message: transactionAddMessages.accountIdNotNumeric }
+  }
+  if (card && !DIGITS.test(card)) {
+    return { field: 'cardNumber', message: transactionAddMessages.cardNumberNotNumeric }
+  }
+  return null
+}

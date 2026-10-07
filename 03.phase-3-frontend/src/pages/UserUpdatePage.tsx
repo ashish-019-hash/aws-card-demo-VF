@@ -65,8 +65,25 @@ export function UserUpdatePage() {
     }
   }, [])
 
+  // A route userId change within this same mounted component supersedes any
+  // in-flight save (the effect cleanup below bumps requestRef, so its
+  // completion is ignored) — the busy flag must be released too or the
+  // controls would stay locked forever. Adjusted during render, per React's
+  // prior-render-state pattern, instead of synchronously inside the effect.
+  const [renderedUserId, setRenderedUserId] = useState(userIdParam)
+  if (renderedUserId !== userIdParam) {
+    setRenderedUserId(userIdParam)
+    setSaving(false)
+    if (!userIdParam) {
+      setLookup({ status: 'idle' })
+      setBaseline(null)
+    }
+  }
+
   useEffect(() => {
-    if (userIdParam) void lookupUser(userIdParam)
+    if (userIdParam) {
+      void lookupUser(userIdParam)
+    }
     return () => {
       requestRef.current += 1
     }

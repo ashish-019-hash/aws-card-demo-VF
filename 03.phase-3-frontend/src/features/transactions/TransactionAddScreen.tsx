@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button, Card, ConfirmPanel, MessageBar, PageHeader, TextField, type MessageTone } from '../../components/ui'
 import { api, type TransactionRequest } from '../../services/api'
-import { transactionAddSchema, type TransactionAddFormValues } from '../../validation/transactionAdd'
-import { fetchLastTransaction, nextTransactionId, toErrorMessage, toSignedAmount } from './service'
+import { transactionAddSchema, validateTransactionKeys, type TransactionAddFormValues } from '../../validation/transactionAdd'
+import { fetchLastTransaction, nextTransactionId, resolveTransactionKeys, toErrorMessage, toSignedAmount } from './service'
 import styles from './transactions.module.css'
 
 const emptyValues: TransactionAddFormValues = {
@@ -62,6 +62,10 @@ export function TransactionAddScreen() {
   )
 
   function reviewAndAdd(values: TransactionAddFormValues) {
+    // Entering review supersedes any in-flight copy: a late copy response
+    // must never change the fields after the user has reviewed them.
+    requestSeqRef.current += 1
+    setCopying(false)
     setMessage(null)
     // Snapshot the values the resolver just validated: these exact values are
     // shown for review and written on Yes, regardless of later input events.
@@ -136,12 +140,29 @@ export function TransactionAddScreen() {
 
   // Legacy F5: copy the most recent transaction on file into the form.
   // Only the documented transaction and merchant fields are copied
-  // (COTRN02C.cbl COPY-LAST-TRAN-DATA); the entered account and card
-  // numbers are the new record's keys and stay as typed.
+  // (COTRN02C.cbl COPY-LAST-TRAN-DATA). Like the legacy paragraph, the copy
+  // first runs key checks and resolves the keys through the cross-reference.
+  // An entered account takes precedence and replaces the card with its linked
+  // card; a blank, malformed, or nonexistent target never copies anything.
   async function copyLastTransaction() {
+    const accountId = getValues('accountId') ?? ''
+    const cardNumber = getValues('cardNumber') ?? ''
+    const keyError = validateTransactionKeys(accountId, cardNumber)
+    if (keyError) {
+      setMessage({ tone: 'error', text: keyError.message })
+      setFocus(keyError.field)
+      return
+    }
     const seq = ++requestSeqRef.current
     setCopying(true)
     try {
+      const keys = await resolveTransactionKeys(accountId, cardNumber)
+      if (seq !== requestSeqRef.current) return
+      if (!keys.ok) {
+        setMessage({ tone: 'error', text: keys.message })
+        setFocus(keys.field)
+        return
+      }
       const last = await fetchLastTransaction()
       if (seq !== requestSeqRef.current) return
       if (!last) {
@@ -150,8 +171,8 @@ export function TransactionAddScreen() {
       }
       reset({
         ...emptyValues,
-        accountId: getValues('accountId'),
-        cardNumber: getValues('cardNumber'),
+        accountId: keys.accountId,
+        cardNumber: keys.cardNumber,
         transactionTypeCode: last.transactionTypeCode,
         transactionCategoryCode: last.transactionCategoryCode,
         source: last.source,
@@ -206,7 +227,10 @@ export function TransactionAddScreen() {
       ) : null}
 
       <Card>
-        <form onSubmit={handleSubmit(reviewAndAdd)} noValidate>
+        {/* handleSubmit is invoked inside the event handler (not during
+            render) because reviewAndAdd supersedes the in-flight copy via a
+            ref, which must only happen on an actual submit event. */}
+        <form onSubmit={(event) => void handleSubmit(reviewAndAdd)(event)} noValidate>
           <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing'}>
             <legend className={styles.legend}>Account or card</legend>
             <p className={styles.fieldsetHint}>Enter the account or the card; the other is filled in automatically.</p>
@@ -293,7 +317,9 @@ export function TransactionAddScreen() {
               <Button variant="secondary" onClick={clearForm} disabled={phase.kind !== 'editing'}>
                 Clear form
               </Button>
-              <Button type="submit" disabled={phase.kind !== 'editing'}>
+              {/* Review stays unavailable while a copy is in flight so a late copy
+                  response can never alter what was reviewed. */}
+              <Button type="submit" disabled={phase.kind !== 'editing' || copying}>
                 Review and add
               </Button>
             </div>

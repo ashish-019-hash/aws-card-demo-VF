@@ -52,10 +52,22 @@ async function readError(response: Response): Promise<ApiError> {
   return new ApiError(message, response.status, detail)
 }
 
+/** Expired/revoked server session: drop cached CSRF state and tell the app. */
+function notifyUnauthorized() {
+  clearApiSession()
+  for (const listener of [...unauthorizedListeners]) listener()
+}
+
 async function getCsrfHeader(): Promise<{ name: string; token: string }> {
   if (csrfHeader) return csrfHeader
   const response = await fetch(apiUrl('/api/auth/csrf'), { credentials: 'include' })
-  if (!response.ok) throw await readError(response)
+  if (!response.ok) {
+    // The CSRF bootstrap is itself a protected request: a 401 here means the
+    // server session is gone, exactly like a 401 from the guarded endpoint
+    // the mutation was about to call.
+    if (response.status === 401) notifyUnauthorized()
+    throw await readError(response)
+  }
   const value = (await response.json()) as { headerName: string; token: string }
   csrfHeader = { name: value.headerName, token: value.token }
   return csrfHeader
@@ -77,8 +89,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       // The server session is gone (expired, revoked, restarted). Drop the
       // cached CSRF token and tell the app so it clears the frontend session
       // and routes the user back to sign-in for reauthentication.
-      clearApiSession()
-      for (const listener of [...unauthorizedListeners]) listener()
+      notifyUnauthorized()
     }
     throw await readError(response)
   }

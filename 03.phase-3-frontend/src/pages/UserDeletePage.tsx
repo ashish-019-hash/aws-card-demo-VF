@@ -60,8 +60,22 @@ export function UserDeletePage() {
     }
   }, [])
 
+  // A route userId change within this same mounted component supersedes any
+  // in-flight delete (the effect cleanup below bumps requestRef, so its
+  // completion is ignored) — the busy flag must be released too or the
+  // controls would stay locked forever. Adjusted during render, per React's
+  // prior-render-state pattern, instead of synchronously inside the effect.
+  const [renderedUserId, setRenderedUserId] = useState(userIdParam)
+  if (renderedUserId !== userIdParam) {
+    setRenderedUserId(userIdParam)
+    setDeleting(false)
+    if (!userIdParam) setLookup({ status: 'idle' })
+  }
+
   useEffect(() => {
-    if (userIdParam) void lookupUser(userIdParam)
+    if (userIdParam) {
+      void lookupUser(userIdParam)
+    }
     return () => {
       requestRef.current += 1
     }

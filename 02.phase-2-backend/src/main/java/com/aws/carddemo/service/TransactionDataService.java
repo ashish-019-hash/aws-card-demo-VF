@@ -4,17 +4,22 @@ import com.aws.carddemo.dto.TransactionDto;
 import com.aws.carddemo.dto.TransactionRequest;
 import com.aws.carddemo.entity.CardCrossReference;
 import com.aws.carddemo.entity.CardTransaction;
+import com.aws.carddemo.entity.TransactionCategoryId;
 import com.aws.carddemo.exception.ResourceConflictException;
 import com.aws.carddemo.exception.ResourceNotFoundException;
 import com.aws.carddemo.repository.CardTransactionRepository;
 import com.aws.carddemo.repository.CardCrossReferenceRepository;
 import com.aws.carddemo.repository.CreditCardRepository;
+import com.aws.carddemo.repository.TransactionCategoryRepository;
+import com.aws.carddemo.repository.TransactionTypeRepository;
 import com.aws.carddemo.validation.LegacyInputValidator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.PersistenceException;
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.util.List;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,11 +30,15 @@ public class TransactionDataService {
     private final CardTransactionRepository repository;
     private final CardCrossReferenceRepository crossReferences;
     private final CreditCardRepository cards;
+    private final TransactionTypeRepository transactionTypes;
+    private final TransactionCategoryRepository transactionCategories;
     private final LegacyInputValidator validator;
     @PersistenceContext private EntityManager entityManager;
     public TransactionDataService(CardTransactionRepository repository, CardCrossReferenceRepository crossReferences,
-            CreditCardRepository cards, LegacyInputValidator validator) {
-        this.repository = repository; this.crossReferences = crossReferences; this.cards = cards; this.validator = validator;
+            CreditCardRepository cards, TransactionTypeRepository transactionTypes,
+            TransactionCategoryRepository transactionCategories, LegacyInputValidator validator) {
+        this.repository = repository; this.crossReferences = crossReferences; this.cards = cards;
+        this.transactionTypes = transactionTypes; this.transactionCategories = transactionCategories; this.validator = validator;
     }
 
     @Transactional(readOnly = true) public Page<TransactionDto> findAll(Pageable pageable) { return repository.findAll(pageable).map(this::toDto); }
@@ -39,15 +48,44 @@ public class TransactionDataService {
     public TransactionDto create(TransactionRequest r) {
         validator.transaction(r);
         if (repository.existsById(r.id())) throw new ResourceConflictException("Transaction already exists: " + r.id());
+        requireTypeAndCategory(r.transactionTypeCode(), r.transactionCategoryCode());
         CardTransaction t = new CardTransaction();
         copy(r, t);
         // Insert-only: persist never overwrites an existing row, and a concurrent insert
         // of the same ID between the check above and the flush surfaces as a conflict.
         try { entityManager.persist(t); entityManager.flush(); }
         catch (PersistenceException | org.springframework.dao.DataIntegrityViolationException exception) {
-            throw new ResourceConflictException("Transaction already exists: " + r.id());
+            // All foreign keys (type, category, card) were verified above, so the only
+            // integrity failure mapped to a conflict is a real primary-key collision.
+            if (isDuplicateKeyViolation(exception)) throw new ResourceConflictException("Transaction already exists: " + r.id());
+            throw exception;
         }
         return toDto(t);
+    }
+
+    /**
+     * The relational schema keys card_transactions to transaction_types and
+     * transaction_categories (legacy TRANTYPE/TRANCATG reference data). Verify both
+     * up front so an unknown code surfaces as a clear not-found error instead of a
+     * flush-time integrity failure misreported as a duplicate transaction ID.
+     */
+    private void requireTypeAndCategory(String typeCode, Integer categoryCode) {
+        if (!transactionTypes.existsById(typeCode)) throw new ResourceNotFoundException("Transaction type", typeCode);
+        TransactionCategoryId categoryId = new TransactionCategoryId();
+        categoryId.setTransactionTypeCode(typeCode);
+        categoryId.setTransactionCategoryCode(categoryCode);
+        if (!transactionCategories.existsById(categoryId))
+            throw new ResourceNotFoundException("Transaction category", typeCode + "/" + categoryCode);
+    }
+
+    /** True only for unique/primary-key violations (SQLSTATE 23505), never FK or other integrity failures. */
+    private boolean isDuplicateKeyViolation(RuntimeException exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException violation)
+                return violation.getKind() == ConstraintViolationException.ConstraintKind.UNIQUE;
+            if (cause instanceof SQLException sql) return "23505".equals(sql.getSQLState());
+        }
+        return false;
     }
 
     private void copy(TransactionRequest r, CardTransaction t) {
@@ -61,19 +99,15 @@ public class TransactionDataService {
 
     /**
      * RULE-VAL-056 (COTRN02C VALIDATE-INPUT-KEY-FIELDS): the account ID takes precedence.
-     * When it is supplied it must resolve through the card cross-reference, which provides
-     * the card number; a card number supplied alongside it must belong to that account.
-     * A card number alone must itself exist in the cross-reference.
+     * When it is supplied, READ-CXACAIX-FILE resolves the account's cross-reference and
+     * MOVE XREF-CARD-NUM TO CARDNINI overwrites whatever card number was typed, so any
+     * supplied card number is ignored. A card number alone must itself exist in CCXREF.
      */
     private String resolveCardNumber(Long accountId, String cardNumber) {
         if (accountId != null) {
             List<CardCrossReference> references = crossReferences.findByAccountId(accountId);
             if (references.isEmpty()) throw new ResourceNotFoundException("Card cross-reference for account", accountId);
-            if (cardNumber == null || cardNumber.isBlank()) return references.get(0).getCardNumber();
-            String supplied = cardNumber;
-            if (references.stream().noneMatch(reference -> reference.getCardNumber().equals(supplied)))
-                throw new IllegalArgumentException("Card Number does not belong to the entered Account ID");
-            return supplied;
+            return references.get(0).getCardNumber();
         }
         return crossReferences.findById(cardNumber)
                 .orElseThrow(() -> new ResourceNotFoundException("Card cross-reference for card", cardNumber))

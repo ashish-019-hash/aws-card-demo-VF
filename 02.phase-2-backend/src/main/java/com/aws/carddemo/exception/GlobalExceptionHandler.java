@@ -21,6 +21,16 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.CONFLICT, "Resource conflict", exception.getMessage());
     }
 
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    ProblemDetail handleConcurrentUpdate(org.springframework.dao.OptimisticLockingFailureException exception) {
+        return problem(HttpStatus.CONFLICT, "Resource conflict", "The record changed during this operation. Reload and try again.");
+    }
+
+    @ExceptionHandler(org.springframework.data.mapping.PropertyReferenceException.class)
+    ProblemDetail handleInvalidSort(org.springframework.data.mapping.PropertyReferenceException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid request", "Unknown sort field: " + exception.getPropertyName());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail handleBadRequest(IllegalArgumentException exception) {
         return problem(HttpStatus.BAD_REQUEST, "Invalid request", exception.getMessage());
