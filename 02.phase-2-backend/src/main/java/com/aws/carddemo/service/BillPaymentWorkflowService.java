@@ -11,6 +11,9 @@ import com.aws.carddemo.repository.AccountRepository;
 import com.aws.carddemo.repository.CardCrossReferenceRepository;
 import com.aws.carddemo.repository.CardTransactionRepository;
 import com.aws.carddemo.validation.LegacyInputValidator;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.PersistenceException;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,10 +28,13 @@ public class BillPaymentWorkflowService {
     private final CardTransactionRepository transactions;
     private final BillPaymentRules rules;
     private final LegacyInputValidator validator;
+    private final TransactionIdAllocator transactionIds;
+    @PersistenceContext private EntityManager entityManager;
     public BillPaymentWorkflowService(AccountRepository accounts, CardCrossReferenceRepository crossReferences,
-            CardTransactionRepository transactions, BillPaymentRules rules, LegacyInputValidator validator) {
+            CardTransactionRepository transactions, BillPaymentRules rules, LegacyInputValidator validator,
+            TransactionIdAllocator transactionIds) {
         this.accounts = accounts; this.crossReferences = crossReferences; this.transactions = transactions;
-        this.rules = rules; this.validator = validator;
+        this.rules = rules; this.validator = validator; this.transactionIds = transactionIds;
     }
 
     @Transactional
@@ -59,8 +65,9 @@ public class BillPaymentWorkflowService {
         String timestamp = LocalDateTime.now().format(TIMESTAMP);
         transaction.setOriginationTimestamp(timestamp);
         transaction.setProcessingTimestamp(timestamp);
-        try { transactions.saveAndFlush(transaction); }
-        catch (org.springframework.dao.DataIntegrityViolationException exception) { throw new ResourceConflictException("Generated transaction ID already exists"); }
+        // Insert-only: persist never overwrites an existing transaction with the same ID.
+        try { entityManager.persist(transaction); entityManager.flush(); }
+        catch (PersistenceException | org.springframework.dao.DataIntegrityViolationException exception) { throw new ResourceConflictException("Generated transaction ID already exists"); }
         account.setCurrentBalance(settlement.resultingBalance());
         accounts.save(account);
         return new BillPaymentResponse(account.getId(), settlement.cardNumber(), transactionId,
@@ -68,9 +75,9 @@ public class BillPaymentWorkflowService {
     }
 
     private String nextTransactionId() {
-        BigInteger last = transactions.findTopByOrderByIdDesc()
+        BigInteger persistedMax = transactions.findTopByOrderByIdDesc()
                 .map(CardTransaction::getId).filter(id -> id.matches("[0-9]{16}"))
                 .map(BigInteger::new).orElse(BigInteger.ZERO);
-        return String.format("%016d", last.add(BigInteger.ONE));
+        return transactionIds.next(persistedMax);
     }
 }

@@ -14,7 +14,7 @@ import CardUpdatePage from './CardUpdatePage'
 
 vi.mock('../services/api', () => ({
   api: {
-    accounts: { profile: vi.fn(), get: vi.fn(), update: vi.fn() },
+    accounts: { profile: vi.fn(), updateProfile: vi.fn(), get: vi.fn(), update: vi.fn() },
     customers: { get: vi.fn(), update: vi.fn() },
     cards: { list: vi.fn(), byAccount: vi.fn(), get: vi.fn(), update: vi.fn() },
   },
@@ -147,12 +147,11 @@ describe('AccountViewPage', () => {
 })
 
 describe('AccountUpdatePage', () => {
-  it('saves a customer-only change through api.customers.update with the optimistic version', async () => {
+  it('saves a customer change through the atomic profile update with both optimistic versions', async () => {
     vi.mocked(api.accounts.profile).mockResolvedValue(profileDto)
-    vi.mocked(api.customers.update).mockResolvedValue({
-      ...profileDto.customer,
-      version: 6,
-      firstName: 'Sara',
+    vi.mocked(api.accounts.updateProfile).mockResolvedValue({
+      ...profileDto,
+      customer: { ...profileDto.customer, version: 6, firstName: 'Sara' },
     })
     renderUserPage(<AccountUpdatePage />, {
       routePath: '/accounts/update/:accountId?',
@@ -168,19 +167,20 @@ describe('AccountUpdatePage', () => {
     ).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Changes committed to database.')).toBeInTheDocument()
-    expect(api.customers.update).toHaveBeenCalledWith(
-      '000000001',
-      expect.objectContaining({ version: 5, firstName: 'Sara', ssn: '123456789' }),
+    expect(api.accounts.updateProfile).toHaveBeenCalledWith(
+      '00000000010',
+      expect.objectContaining({
+        account: expect.objectContaining({ version: 3 }),
+        customer: expect.objectContaining({ version: 5, firstName: 'Sara', ssn: '123456789' }),
+      }),
     )
-    expect(api.accounts.update).not.toHaveBeenCalled()
   })
 
-  it('saves an account-only change through api.accounts.update with the optimistic version', async () => {
+  it('saves an account change through the atomic profile update with the optimistic version', async () => {
     vi.mocked(api.accounts.profile).mockResolvedValue(profileDto)
-    vi.mocked(api.accounts.update).mockResolvedValue({
-      ...profileDto.account,
-      version: 4,
-      creditLimit: 9000,
+    vi.mocked(api.accounts.updateProfile).mockResolvedValue({
+      ...profileDto,
+      account: { ...profileDto.account, version: 4, creditLimit: 9000 },
     })
     renderUserPage(<AccountUpdatePage />, {
       routePath: '/accounts/update/:accountId?',
@@ -193,11 +193,13 @@ describe('AccountUpdatePage', () => {
     await screen.findByText(/Changes validated\. Save to commit them/)
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Changes committed to database.')).toBeInTheDocument()
-    expect(api.accounts.update).toHaveBeenCalledWith(
+    expect(api.accounts.updateProfile).toHaveBeenCalledWith(
       '00000000010',
-      expect.objectContaining({ version: 3, creditLimit: 9000, addressZip: '78701' }),
+      expect.objectContaining({
+        account: expect.objectContaining({ version: 3, creditLimit: 9000, addressZip: '78701' }),
+        customer: expect.objectContaining({ version: 5 }),
+      }),
     )
-    expect(api.customers.update).not.toHaveBeenCalled()
   })
 
   it('reports no change without calling any update endpoint', async () => {
@@ -211,8 +213,7 @@ describe('AccountUpdatePage', () => {
     expect(
       await screen.findByText('No change detected with respect to values fetched.'),
     ).toBeInTheDocument()
-    expect(api.accounts.update).not.toHaveBeenCalled()
-    expect(api.customers.update).not.toHaveBeenCalled()
+    expect(api.accounts.updateProfile).not.toHaveBeenCalled()
   })
 })
 

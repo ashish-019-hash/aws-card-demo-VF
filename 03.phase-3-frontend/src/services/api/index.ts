@@ -2,6 +2,7 @@ import { apiRequest, clearApiSession } from './client'
 import type {
   AccountDto,
   AccountProfileDto,
+  AccountProfileUpdateRequest,
   AccountUpdateRequest,
   BillPaymentResponse,
   CreditCardDto,
@@ -42,6 +43,11 @@ export const api = {
   },
   accounts: {
     profile: (accountId: string) => apiRequest<AccountProfileDto>(`/api/account-profiles/${accountId}`),
+    updateProfile: (accountId: string, request: AccountProfileUpdateRequest) =>
+      apiRequest<AccountProfileDto>(`/api/account-profiles/${accountId}`, {
+        method: 'PUT',
+        body: json(request),
+      }),
     get: (accountId: string) => apiRequest<AccountDto>(`/api/accounts/${accountId}`),
     update: (accountId: string, request: AccountUpdateRequest) =>
       apiRequest<AccountDto>(`/api/accounts/${accountId}`, { method: 'PUT', body: json(request) }),

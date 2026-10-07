@@ -84,10 +84,12 @@ export function SignInPage() {
           <TextField
             label="Password"
             type={showPassword ? 'text' : 'password'}
-            maxLength={8}
+            // User maintenance accepts 8-72 character passwords (UserRequest
+            // @Size(min=8, max=72)), so sign-on must accept the same range.
+            maxLength={72}
             autoComplete="current-password"
             requiredIndicator
-            hint="Up to 8 characters."
+            hint="Up to 72 characters."
             error={errors.password?.message}
             trailing={
               <button

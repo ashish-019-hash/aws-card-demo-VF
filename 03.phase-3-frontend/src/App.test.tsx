@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -12,13 +11,11 @@ afterEach(() => {
 
 function renderApp(initialEntry: string) {
   return render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <SessionProvider>
-          <App />
-        </SessionProvider>
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <SessionProvider>
+        <App />
+      </SessionProvider>
+    </MemoryRouter>,
   )
 }
 

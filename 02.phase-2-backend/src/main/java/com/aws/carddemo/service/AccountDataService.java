@@ -27,6 +27,16 @@ public class AccountDataService {
 
     @Transactional
     public AccountDto update(Long id, AccountRequest request) {
+        if (!applyUpdate(id, request)) throw new IllegalArgumentException("At least one account field must change");
+        return toDto(entity(id));
+    }
+
+    /**
+     * Validates and applies the update inside the caller's transaction, flushing so the
+     * entity carries its post-update version. Returns whether any field changed.
+     */
+    @Transactional
+    public boolean applyUpdate(Long id, AccountRequest request) {
         validator.accountId(id, true);
         validator.account(request);
         Account account = entity(id);
@@ -42,7 +52,7 @@ public class AccountDataService {
                 || !Objects.equals(account.getCurrentCycleDebit(), request.currentCycleDebit())
                 || !Objects.equals(account.getAddressZip(), request.addressZip())
                 || !Objects.equals(account.getGroupId(), request.groupId());
-        if (!changed) throw new IllegalArgumentException("At least one account field must change");
+        if (!changed) return false;
         account.setActiveStatus(request.activeStatus());
         account.setCurrentBalance(request.currentBalance());
         account.setCreditLimit(request.creditLimit());
@@ -54,7 +64,9 @@ public class AccountDataService {
         account.setCurrentCycleDebit(request.currentCycleDebit());
         account.setAddressZip(request.addressZip());
         account.setGroupId(request.groupId());
-        return toDto(repository.save(account));
+        // Flush so the managed entity carries the incremented version for consecutive edits.
+        repository.saveAndFlush(account);
+        return true;
     }
 
     private Account entity(Long id) { return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Account", id)); }

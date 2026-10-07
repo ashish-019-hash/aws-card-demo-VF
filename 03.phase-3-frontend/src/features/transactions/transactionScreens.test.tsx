@@ -132,17 +132,59 @@ describe('TransactionListPage', () => {
   })
 
   it('positions the list at the entered start transaction ID', async () => {
-    list.mockResolvedValue(
-      pageOf([transactionDto('101'), transactionDto('102'), transactionDto('103', { description: 'AMAZON MARKETPLACE' })]),
+    const stored = [transactionDto('101'), transactionDto('102'), transactionDto('103', { description: 'AMAZON MARKETPLACE' })]
+    list.mockImplementation(async (page, size) =>
+      pageOf(stored.slice(page * size, page * size + size), {
+        number: page,
+        size,
+        totalElements: stored.length,
+        totalPages: Math.max(1, Math.ceil(stored.length / size)),
+      }),
     )
     renderAt('/transactions')
     await screen.findAllByText('0000000000000101')
     await userEvent.type(screen.getByLabelText(/Start from transaction ID/), '102')
     await userEvent.click(screen.getByRole('button', { name: 'Go' }))
     expect(await screen.findAllByText('0000000000000102')).not.toHaveLength(0)
-    // The positioned fetch asks the backend for the bounded window from the top.
-    expect(list).toHaveBeenLastCalledWith(0, 1000)
+    expect(screen.getAllByText('0000000000000103').length).toBeGreaterThan(0)
     expect(screen.queryByText('0000000000000101')).not.toBeInTheDocument()
+    // The positioned page is read with page-sized requests, not a fixed window.
+    expect(list).toHaveBeenLastCalledWith(0, 10)
+  })
+
+  it('reports an honest next page when the positioned start is beyond the first thousand records', async () => {
+    // 1,015 stored transactions: the old fixed 1,000-record window silently
+    // claimed end-of-file for anything positioned past it.
+    const total = 1015
+    list.mockImplementation(async (page, size) => {
+      const startIndex = page * size
+      const content = Array.from(
+        { length: Math.max(0, Math.min(size, total - startIndex)) },
+        (_, offset) => transactionDto(String(startIndex + offset + 1)),
+      )
+      return pageOf(content, {
+        number: page,
+        size,
+        totalElements: total,
+        totalPages: Math.ceil(total / size),
+      })
+    })
+    renderAt('/transactions')
+    await screen.findAllByText('0000000000000001')
+    await userEvent.type(screen.getByLabelText(/Start from transaction ID/), '1001')
+    await userEvent.click(screen.getByRole('button', { name: 'Go' }))
+
+    expect((await screen.findAllByText('0000000000001001')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('0000000000001010').length).toBeGreaterThan(0)
+
+    // Records 1011..1015 exist, so Next must page forward instead of
+    // reporting the bottom of the list.
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect((await screen.findAllByText('0000000000001015')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('You are already at the bottom of the page.')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(await screen.findByText('You are already at the bottom of the page.')).toBeInTheDocument()
   })
 })
 
@@ -309,14 +351,83 @@ describe('TransactionAddPage', () => {
       }),
     )
     renderAt('/transactions/add')
+    // The entered target keys must survive the copy: legacy COTRN02C's
+    // COPY-LAST-TRAN-DATA never touches the account or card fields.
+    await userEvent.type(screen.getByLabelText(/Account number/), '00000000042')
+    await userEvent.type(screen.getByLabelText(/Card number/), '4000999988887777')
     await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
 
     expect(await screen.findByLabelText(/Description/)).toHaveValue('PANERA BREAD #4418')
-    expect(screen.getByLabelText(/Card number/)).toHaveValue('4000123456789010')
+    expect(screen.getByLabelText(/Account number/)).toHaveValue('00000000042')
+    expect(screen.getByLabelText(/Card number/)).toHaveValue('4000999988887777')
     // Copy-last prefills the strict signed amount format (RULE-VAL-059).
     expect(screen.getByLabelText(/Amount/)).toHaveValue('+00000021.67')
     expect(screen.getByLabelText(/Merchant ID/)).toHaveValue('411000125')
     expect(screen.getByLabelText(/Original date/)).toHaveValue('2026-09-28')
     expect(list).toHaveBeenCalledWith(0, 1)
+  })
+
+  it('disables the form and writes the reviewed snapshot while confirming and saving', async () => {
+    list.mockResolvedValue(pageOf([transactionDto('125')], { totalElements: 1, totalPages: 1 }))
+    let resolveCreate: (dto: TransactionDto) => void = () => {}
+    create.mockImplementation(
+      () => new Promise<TransactionDto>((resolve) => (resolveCreate = resolve)),
+    )
+
+    renderAt('/transactions/add')
+    await fillValidAddForm()
+    await userEvent.click(screen.getByRole('button', { name: 'Review and add' }))
+    expect(await screen.findByText('Confirm to add this transaction.')).toBeInTheDocument()
+
+    // While the reviewed snapshot is pending, nothing on the form is editable.
+    expect(screen.getByLabelText(/Merchant name/)).toBeDisabled()
+    expect(screen.getByLabelText(/Account number/)).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Clear form' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Copy last transaction' })).toBeDisabled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, add' }))
+    // Still disabled while the save is in flight.
+    expect(screen.getByLabelText(/Merchant name/)).toBeDisabled()
+
+    resolveCreate(transactionDto('126'))
+    expect(
+      await screen.findByText('Transaction added successfully. Your Tran ID is 0000000000000126.'),
+    ).toBeInTheDocument()
+    // The record written is the reviewed snapshot.
+    expect(create.mock.calls[0][0]).toMatchObject({ description: 'TEST PURCHASE', amount: '+00000086.42' })
+    // The form is editable again after the save completes.
+    expect(screen.getByLabelText(/Merchant name/)).not.toBeDisabled()
+  })
+
+  it('ignores a copy-last response that resolves after the form was cleared', async () => {
+    let resolveList: (page: PageResponse<TransactionDto>) => void = () => {}
+    list.mockImplementation(
+      () => new Promise<PageResponse<TransactionDto>>((resolve) => (resolveList = resolve)),
+    )
+
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Merchant name/), 'TYPED MERCHANT')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+    // Clear supersedes the in-flight copy request.
+    await userEvent.click(screen.getByRole('button', { name: 'Clear form' }))
+    expect(screen.getByLabelText(/Merchant name/)).toHaveValue('')
+
+    resolveList(pageOf([transactionDto('125', { merchantName: 'STALE MERCHANT' })], { totalElements: 1, totalPages: 1 }))
+    // The stale copy must not repopulate the cleared form.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.getByLabelText(/Merchant name/)).toHaveValue('')
+    expect(screen.getByLabelText(/Description/)).toHaveValue('')
+  })
+
+  it('does not copy the stored card number into empty key fields', async () => {
+    list.mockResolvedValue(
+      pageOf([transactionDto('125', { description: 'PANERA BREAD #4418' })], { totalElements: 1, totalPages: 1 }),
+    )
+    renderAt('/transactions/add')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    expect(await screen.findByLabelText(/Description/)).toHaveValue('PANERA BREAD #4418')
+    expect(screen.getByLabelText(/Account number/)).toHaveValue('')
+    expect(screen.getByLabelText(/Card number/)).toHaveValue('')
   })
 })

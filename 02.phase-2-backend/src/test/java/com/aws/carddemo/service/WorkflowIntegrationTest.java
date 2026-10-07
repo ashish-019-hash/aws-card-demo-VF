@@ -91,6 +91,30 @@ class WorkflowIntegrationTest {
     }
 
     @Test
+    void zeroPaddedLegacyAccountIdsResolveAfterLongConversion() throws Exception {
+        Account account = new Account(); account.setId(1L); account.setActiveStatus("Y"); account.setCurrentBalance(new BigDecimal("10.00"));
+        account.setCreditLimit(new BigDecimal("100.00")); account.setCashCreditLimit(new BigDecimal("50.00")); accounts.save(account);
+        Customer customer = new Customer(); customer.setId(1L); customer.setFirstName("Low"); customer.setLastName("Id"); customers.save(customer);
+        CreditCard card = new CreditCard(); card.setCardNumber("5555666677778888"); card.setAccountId(1L); card.setActiveStatus("Y"); cards.save(card);
+        CardCrossReference reference = new CardCrossReference(); reference.setCardNumber("5555666677778888"); reference.setAccountId(1L); reference.setCustomerId(1L); crossReferences.save(reference);
+
+        MockHttpSession session = (MockHttpSession) login("USER0001").getRequest().getSession(false);
+        mvc.perform(get("/api/account-profiles/00000000001").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.account.id").value(1))
+                .andExpect(jsonPath("$.customer.id").value(1))
+                .andExpect(jsonPath("$.cards[0].cardNumber").value("5555666677778888"));
+        mvc.perform(get("/api/accounts/1").session(session)).andExpect(status().isOk());
+        mvc.perform(get("/api/cards?accountId=00000000001").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].accountId").value(1));
+        mvc.perform(post("/api/bill-payments").session(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"accountId\":1,\"confirmation\":\"Y\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultingBalance").value(0));
+    }
+
+    @Test
     void loginCreatesAnAdminSessionAndRejectsWrongCredentials() throws Exception {
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"userId\":\"admin001\",\"password\":\"PASSWORD\"}"))

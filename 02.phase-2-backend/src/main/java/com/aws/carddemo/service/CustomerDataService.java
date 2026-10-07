@@ -23,6 +23,16 @@ public class CustomerDataService {
 
     @Transactional
     public CustomerDto update(Long id, CustomerRequest r) {
+        if (!applyUpdate(id, r)) throw new IllegalArgumentException("At least one customer field must change");
+        return toDto(entity(id));
+    }
+
+    /**
+     * Validates and applies the update inside the caller's transaction, flushing so the
+     * entity carries its post-update version. Returns whether any field changed.
+     */
+    @Transactional
+    public boolean applyUpdate(Long id, CustomerRequest r) {
         validator.customer(r);
         Customer c = entity(id);
         if (!Objects.equals(c.getVersion(), r.version())) throw new com.aws.carddemo.exception.ResourceConflictException("Customer changed after it was fetched");
@@ -35,14 +45,16 @@ public class CustomerDataService {
                 || !Objects.equals(c.getGovernmentIssuedId(), r.governmentIssuedId()) || !Objects.equals(c.getDateOfBirth(), r.dateOfBirth())
                 || !Objects.equals(c.getEftAccountId(), r.eftAccountId()) || !Objects.equals(c.getPrimaryCardholderIndicator(), r.primaryCardholderIndicator())
                 || !Objects.equals(c.getFicoCreditScore(), r.ficoCreditScore());
-        if (!changed) throw new IllegalArgumentException("At least one customer field must change");
+        if (!changed) return false;
         c.setFirstName(r.firstName()); c.setMiddleName(r.middleName()); c.setLastName(r.lastName());
         c.setAddressLine1(r.addressLine1()); c.setAddressLine2(r.addressLine2()); c.setAddressLine3(r.addressLine3());
         c.setAddressStateCode(r.addressStateCode()); c.setAddressCountryCode(r.addressCountryCode()); c.setAddressZip(r.addressZip());
         c.setPhoneNumber1(r.phoneNumber1()); c.setPhoneNumber2(r.phoneNumber2()); c.setSsn(Long.valueOf(r.ssn()));
         c.setGovernmentIssuedId(r.governmentIssuedId()); c.setDateOfBirth(r.dateOfBirth()); c.setEftAccountId(r.eftAccountId());
         c.setPrimaryCardholderIndicator(r.primaryCardholderIndicator()); c.setFicoCreditScore(r.ficoCreditScore());
-        return toDto(repository.save(c));
+        // Flush so the managed entity carries the incremented version for consecutive edits.
+        repository.saveAndFlush(c);
+        return true;
     }
 
     private Customer entity(Long id) { return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Customer", id)); }

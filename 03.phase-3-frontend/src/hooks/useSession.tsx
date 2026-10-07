@@ -1,5 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+// Imported from the client module directly (not the services/api barrel) so
+// tests that mock the barrel keep this subscription wiring intact.
+import { onUnauthorized } from '../services/api/client'
 import type { Session, SessionContextValue } from '../types/session'
 
 /** sessionStorage key that mirrors the in-memory session so a reload keeps the user signed in. */
@@ -41,6 +44,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       /* ignore storage failures in preview mode */
     }
   }, [])
+
+  // A protected request answered 401 means the server session expired or was
+  // revoked. Clearing the frontend session here lets RequireSession route the
+  // user back to sign-in to reauthenticate. The bad-credentials 401 from the
+  // login endpoint itself never triggers this (see services/api/client).
+  useEffect(() => onUnauthorized(signOut), [signOut])
 
   const value = useMemo(() => ({ session, signIn, signOut }), [session, signIn, signOut])
 

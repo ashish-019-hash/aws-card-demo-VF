@@ -110,6 +110,11 @@ export interface AccountUpdateRequest extends Omit<AccountDto, 'id'> {}
 export interface CustomerUpdateRequest extends Omit<CustomerDto, 'id' | 'ssn'> {
   ssn: string
 }
+/** Atomic SCREEN-05 save: account + customer commit or roll back together. */
+export interface AccountProfileUpdateRequest {
+  account: AccountUpdateRequest
+  customer: CustomerUpdateRequest
+}
 export interface CreditCardUpdateRequest extends Omit<CreditCardDto, 'cardNumber'> {}
 export interface UserRequest extends Omit<UserDto, 'id'> {
   password: string

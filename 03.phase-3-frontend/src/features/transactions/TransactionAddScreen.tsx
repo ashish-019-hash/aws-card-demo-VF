@@ -25,7 +25,15 @@ const emptyValues: TransactionAddFormValues = {
   confirmation: '',
 }
 
-type Phase = 'editing' | 'confirming' | 'saving'
+/**
+ * 'confirming' and 'saving' carry a snapshot of the validated form values so
+ * the record written on Yes is exactly the one that was reviewed; the form
+ * controls are disabled while the snapshot is live.
+ */
+type Phase =
+  | { kind: 'editing' }
+  | { kind: 'confirming'; values: TransactionAddFormValues }
+  | { kind: 'saving'; values: TransactionAddFormValues }
 
 /** SCREEN-11 COTRN02 — record a new transaction (STORY-015/016). */
 export function TransactionAddScreen() {
@@ -33,7 +41,7 @@ export function TransactionAddScreen() {
   const location = useLocation()
   const backTo = (location.state as { from?: string } | null)?.from ?? '/menu'
 
-  const [phase, setPhase] = useState<Phase>('editing')
+  const [phase, setPhase] = useState<Phase>({ kind: 'editing' })
   const [message, setMessage] = useState<{ tone: MessageTone; text: string } | null>(null)
   const [copying, setCopying] = useState(false)
   // Increments per request so stale (superseded or unmounted) responses are ignored.
@@ -53,9 +61,11 @@ export function TransactionAddScreen() {
     [],
   )
 
-  function reviewAndAdd() {
+  function reviewAndAdd(values: TransactionAddFormValues) {
     setMessage(null)
-    setPhase('confirming')
+    // Snapshot the values the resolver just validated: these exact values are
+    // shown for review and written on Yes, regardless of later input events.
+    setPhase({ kind: 'confirming', values })
   }
 
   /** Maps the confirmed form values to the backend TransactionRequest DTO. */
@@ -85,39 +95,49 @@ export function TransactionAddScreen() {
 
   // Legacy CONFIRM Y/N field: Yes writes the record, No keeps the data on screen.
   async function handleConfirm(value: 'Y' | 'N') {
+    if (phase.kind !== 'confirming') return
     setValue('confirmation', value)
     if (value === 'N') {
-      setPhase('editing')
+      setPhase({ kind: 'editing' })
       return
     }
+    // The snapshot taken at review time is what gets written, so the record
+    // can never drift from what the user confirmed.
+    const values = phase.values
     const seq = ++requestSeqRef.current
-    setPhase('saving')
+    setPhase({ kind: 'saving', values })
     try {
       // The record is written under the next ID after the last one on file (legacy COTRN02).
       const last = await fetchLastTransaction()
-      const created = await api.transactions.create(toRequest(getValues(), nextTransactionId(last?.id ?? null)))
+      const created = await api.transactions.create(toRequest(values, nextTransactionId(last?.id ?? null)))
       if (seq !== requestSeqRef.current) return
       setMessage({ tone: 'success', text: `Transaction added successfully. Your Tran ID is ${created.id}.` })
       reset(emptyValues)
-      setPhase('editing')
+      setPhase({ kind: 'editing' })
       setFocus('accountId')
     } catch (error) {
       if (seq !== requestSeqRef.current) return
       setMessage({ tone: 'error', text: toErrorMessage(error, 'Unable to Add transaction.') })
-      setPhase('editing')
+      setPhase({ kind: 'editing' })
     }
   }
 
   // Legacy F4: clear the form.
   function clearForm() {
     requestSeqRef.current += 1
+    // An in-flight copy was just superseded; its own finally is seq-guarded,
+    // so its loading flag must be released here.
+    setCopying(false)
     reset(emptyValues)
     setMessage(null)
-    setPhase('editing')
+    setPhase({ kind: 'editing' })
     setFocus('accountId')
   }
 
   // Legacy F5: copy the most recent transaction on file into the form.
+  // Only the documented transaction and merchant fields are copied
+  // (COTRN02C.cbl COPY-LAST-TRAN-DATA); the entered account and card
+  // numbers are the new record's keys and stay as typed.
   async function copyLastTransaction() {
     const seq = ++requestSeqRef.current
     setCopying(true)
@@ -130,7 +150,8 @@ export function TransactionAddScreen() {
       }
       reset({
         ...emptyValues,
-        cardNumber: last.cardNumber,
+        accountId: getValues('accountId'),
+        cardNumber: getValues('cardNumber'),
         transactionTypeCode: last.transactionTypeCode,
         transactionCategoryCode: last.transactionCategoryCode,
         source: last.source,
@@ -145,7 +166,6 @@ export function TransactionAddScreen() {
         merchantZip: last.merchantZip,
       })
       setMessage(null)
-      setPhase('editing')
       setFocus('accountId')
     } catch (error) {
       if (seq !== requestSeqRef.current) return
@@ -164,7 +184,12 @@ export function TransactionAddScreen() {
         description="Record a new transaction for an account or card. You will be asked to confirm before it is written."
         actions={
           <>
-            <Button variant="secondary" loading={copying} onClick={() => void copyLastTransaction()}>
+            <Button
+              variant="secondary"
+              loading={copying}
+              disabled={phase.kind !== 'editing'}
+              onClick={() => void copyLastTransaction()}
+            >
               Copy last transaction
             </Button>
             <Button variant="secondary" onClick={() => navigate(backTo)}>
@@ -182,7 +207,7 @@ export function TransactionAddScreen() {
 
       <Card>
         <form onSubmit={handleSubmit(reviewAndAdd)} noValidate>
-          <fieldset className={styles.fieldset}>
+          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing'}>
             <legend className={styles.legend}>Account or card</legend>
             <p className={styles.fieldsetHint}>Enter the account or the card; the other is filled in automatically.</p>
             <div className={styles.formGrid}>
@@ -191,7 +216,7 @@ export function TransactionAddScreen() {
             </div>
           </fieldset>
 
-          <fieldset className={styles.fieldset}>
+          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing'}>
             <legend className={styles.legend}>Transaction details</legend>
             <div className={styles.formGrid}>
               <TextField
@@ -244,7 +269,7 @@ export function TransactionAddScreen() {
             </div>
           </fieldset>
 
-          <fieldset className={styles.fieldset}>
+          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing'}>
             <legend className={styles.legend}>Merchant</legend>
             <div className={styles.formGrid}>
               <TextField
@@ -265,17 +290,17 @@ export function TransactionAddScreen() {
           <div className={styles.formFooter}>
             <span className={styles.footerNote}>All fields are required.</span>
             <div className={styles.formActions}>
-              <Button variant="secondary" onClick={clearForm} disabled={phase === 'saving'}>
+              <Button variant="secondary" onClick={clearForm} disabled={phase.kind !== 'editing'}>
                 Clear form
               </Button>
-              <Button type="submit" disabled={phase === 'saving'}>
+              <Button type="submit" disabled={phase.kind !== 'editing'}>
                 Review and add
               </Button>
             </div>
           </div>
         </form>
 
-        {phase === 'confirming' || phase === 'saving' ? (
+        {phase.kind === 'confirming' || phase.kind === 'saving' ? (
           <ConfirmPanel
             className={styles.confirmSlot}
             message={
@@ -286,7 +311,7 @@ export function TransactionAddScreen() {
             }
             confirmLabel="Yes, add"
             cancelLabel="No"
-            busy={phase === 'saving'}
+            busy={phase.kind === 'saving'}
             onResult={(value) => void handleConfirm(value)}
           />
         ) : null}

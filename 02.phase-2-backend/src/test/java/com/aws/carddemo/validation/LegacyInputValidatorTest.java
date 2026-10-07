@@ -18,12 +18,16 @@ class LegacyInputValidatorTest {
     @Test
     void validatesSharedKeysMenusAndSelections() {
         assertThatCode(() -> validator.accountId(12345678901L, true)).doesNotThrowAnyException();
+        // Long bindings strip legacy zero padding: 1L stands for 00000000001.
+        assertThatCode(() -> validator.accountId(1L, true)).doesNotThrowAnyException();
         assertThatCode(() -> validator.cardNumber("1111222233334444", true)).doesNotThrowAnyException();
         assertThatCode(() -> validator.transactionId("0000000000000001", true)).doesNotThrowAnyException();
         assertThatCode(() -> validator.menuOption("10", 10)).doesNotThrowAnyException();
         assertThatCode(() -> validator.selection("s", Set.of("S", "U"), false)).doesNotThrowAnyException();
         assertThatCode(() -> validator.singleSelection(1)).doesNotThrowAnyException();
-        assertThatThrownBy(() -> validator.accountId(1L, true)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> validator.accountId(0L, true)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> validator.accountId(-1L, true)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> validator.accountId(123456789012L, true)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> validator.menuAccess("U", "A")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> validator.singleSelection(2)).isInstanceOf(IllegalArgumentException.class);
     }
@@ -71,8 +75,12 @@ class LegacyInputValidatorTest {
     void validatesUserAndConfirmationRules() {
         assertThatCode(() -> validator.userId("USER0001")).doesNotThrowAnyException();
         assertThatCode(() -> validator.user(new UserRequest("A", "User", "password", "U"), true)).doesNotThrowAnyException();
+        assertThatCode(() -> validator.user(new UserRequest("Mary-Jane", "O'Brien Jr.", "password", "U"), true))
+                .doesNotThrowAnyException();
         assertThatCode(() -> validator.confirmation("Y")).doesNotThrowAnyException();
-        assertThatThrownBy(() -> validator.user(new UserRequest("A1", "User", "password", "U"), true))
+        assertThatThrownBy(() -> validator.user(new UserRequest(" ", "User", "password", "U"), true))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> validator.user(new UserRequest("A", " ", "password", "U"), true))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> validator.confirmation("N")).isInstanceOf(IllegalArgumentException.class);
     }

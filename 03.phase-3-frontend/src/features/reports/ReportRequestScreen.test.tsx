@@ -130,7 +130,13 @@ describe('TransactionReportsPage', () => {
     expect(createReport).not.toHaveBeenCalled()
 
     await userEvent.click(screen.getByRole('button', { name: 'Yes, print report' }))
-    expect(await screen.findByText('Monthly report submitted for printing')).toBeInTheDocument()
+    // The copy must be honest: the selection is prepared, but nothing is
+    // printed because the CBTRN03C formatter source is missing.
+    expect(
+      await screen.findByText(
+        'Monthly report selection prepared. Printing is unavailable because the legacy formatter source (CBTRN03C) is missing.',
+      ),
+    ).toBeInTheDocument()
     expect(screen.queryByText('Please confirm to print the Monthly report.')).not.toBeInTheDocument()
     expect(createReport).toHaveBeenCalledWith({ type: 'MONTHLY', confirmation: 'Y' })
 
@@ -148,7 +154,11 @@ describe('TransactionReportsPage', () => {
     await userEvent.type(screen.getByLabelText(/End date/), '2026-09-15')
     await userEvent.click(screen.getByRole('button', { name: 'Request report' }))
     await userEvent.click(screen.getByRole('button', { name: 'Yes, print report' }))
-    expect(await screen.findByText('Custom report submitted for printing')).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        'Custom report selection prepared. Printing is unavailable because the legacy formatter source (CBTRN03C) is missing.',
+      ),
+    ).toBeInTheDocument()
     expect(createReport).toHaveBeenCalledWith({
       type: 'CUSTOM',
       startDate: '2026-09-01',

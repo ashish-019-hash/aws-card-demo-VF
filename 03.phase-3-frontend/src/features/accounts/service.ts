@@ -13,7 +13,6 @@ import type {
 import type { Account } from '../../types/account'
 import type { Customer } from '../../types/customer'
 import type { AccountUpdateFormValues } from '../../validation/accountUpdate'
-import { profileToFormValues } from './formValues'
 import { accountMessages } from './messages'
 
 export type LookupResult<T> =
@@ -106,49 +105,6 @@ export async function fetchAccountProfile(
   }
 }
 
-/** SCREEN-05 fields that live on the account record. */
-const ACCOUNT_FORM_FIELDS = [
-  'activeStatus',
-  'openDate',
-  'expirationDate',
-  'reissueDate',
-  'creditLimit',
-  'cashCreditLimit',
-  'currentBalance',
-  'currentCycleCredit',
-  'currentCycleDebit',
-  'groupId',
-] as const satisfies ReadonlyArray<keyof AccountUpdateFormValues>
-
-/** SCREEN-05 fields that live on the customer record. */
-const CUSTOMER_FORM_FIELDS = [
-  'firstName',
-  'middleName',
-  'lastName',
-  'ssn',
-  'dateOfBirth',
-  'ficoCreditScore',
-  'addressLine1',
-  'addressLine2',
-  'addressLine3',
-  'addressStateCode',
-  'addressZip',
-  'addressCountryCode',
-  'phoneNumber1',
-  'phoneNumber2',
-  'governmentIssuedId',
-  'eftAccountId',
-  'primaryCardholderIndicator',
-] as const satisfies ReadonlyArray<keyof AccountUpdateFormValues>
-
-function fieldsDiffer(
-  a: AccountUpdateFormValues,
-  b: AccountUpdateFormValues,
-  keys: ReadonlyArray<keyof AccountUpdateFormValues>,
-): boolean {
-  return keys.some((key) => (a[key] ?? '') !== (b[key] ?? ''))
-}
-
 function toAccountUpdateRequest(
   account: Account,
   values: AccountUpdateFormValues,
@@ -200,38 +156,33 @@ export interface SaveProfileResult {
   /** Error text when `ok` is false. */
   message?: string
   /**
-   * Latest server-confirmed profile. On a partial failure (account saved,
-   * customer rejected) this carries the committed account so record
-   * versions stay in sync for a retry.
+   * Latest server-confirmed profile. The save is atomic on the backend, so
+   * on failure this is the unchanged current profile and both record
+   * versions stay valid for a retry.
    */
   profile: AccountProfile
 }
 
 /**
- * Persist the edited SCREEN-05 field set. Account and customer live in
- * separate records with separate optimistic versions, so each side is
- * updated only when one of its fields differs from the current profile.
+ * Persist the edited SCREEN-05 field set through the atomic profile update.
+ * The backend checks both optimistic versions and commits (or rolls back)
+ * the account and customer records as one unit of work, matching the
+ * legacy COACTUPC rewrite semantics.
  */
 export async function saveAccountProfile(
   current: AccountProfile,
   values: AccountUpdateFormValues,
 ): Promise<SaveProfileResult> {
-  const currentValues = profileToFormValues(current)
-  let account = current.account
-  let customer = current.customer
   try {
-    if (fieldsDiffer(values, currentValues, ACCOUNT_FORM_FIELDS)) {
-      account = toAccount(
-        await api.accounts.update(account.id, toAccountUpdateRequest(account, values)),
-      )
+    const profile = await api.accounts.updateProfile(current.account.id, {
+      account: toAccountUpdateRequest(current.account, values),
+      customer: toCustomerUpdateRequest(current.customer, values),
+    })
+    return {
+      ok: true,
+      profile: { account: toAccount(profile.account), customer: toCustomer(profile.customer) },
     }
-    if (fieldsDiffer(values, currentValues, CUSTOMER_FORM_FIELDS)) {
-      customer = toCustomer(
-        await api.customers.update(customer.id, toCustomerUpdateRequest(customer, values)),
-      )
-    }
-    return { ok: true, profile: { account, customer } }
   } catch (error) {
-    return { ok: false, message: failureMessage(error), profile: { account, customer } }
+    return { ok: false, message: failureMessage(error), profile: current }
   }
 }

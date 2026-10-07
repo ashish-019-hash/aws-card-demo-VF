@@ -12,6 +12,7 @@ import type { MessageTone } from '../components/ui'
 import { useSession } from '../hooks/useSession'
 import { api } from '../services/api'
 import styles from './AppShell.module.css'
+import { isShellNavigation, recordShellLocation } from './shellNavigation'
 
 /** Cross-page message passed through navigation state (role refusal, sign-out, saves). */
 export interface ShellMessage {
@@ -36,7 +37,6 @@ export function AppShell({ children }: AppShellProps) {
   const [dismissedMessageKey, setDismissedMessageKey] = useState<string | null>(null)
   const [previousPath, setPreviousPath] = useState(location.pathname)
   const mainRef = useRef<HTMLElement>(null)
-  const previousPathRef = useRef(location.pathname)
 
   // Close the drawer as part of the render caused by navigation (derived
   // state pattern) instead of a cascading setState inside an effect.
@@ -48,12 +48,15 @@ export function AppShell({ children }: AppShellProps) {
   const locationState = location.state as { shellMessage?: ShellMessage } | null
   const shellMessage = dismissedMessageKey === location.key ? null : (locationState?.shellMessage ?? null)
 
+  // Focus the main landmark after navigation so screen readers announce the
+  // new page. Runs on mount too (the shell remounts per route page); the
+  // tracking module distinguishes navigation from the initial load.
   useEffect(() => {
-    if (previousPathRef.current !== location.pathname) {
-      previousPathRef.current = location.pathname
+    if (isShellNavigation(location.key)) {
       mainRef.current?.focus()
     }
-  }, [location.pathname])
+    recordShellLocation(location.key)
+  }, [location.key])
 
   if (!session) {
     // Safety net for direct use without a RequireSession guard.

@@ -17,6 +17,25 @@ interface ProblemDetail {
 }
 
 let csrfHeader: { name: string; token: string } | null = null
+
+type UnauthorizedListener = () => void
+const unauthorizedListeners = new Set<UnauthorizedListener>()
+
+/**
+ * Registers a listener invoked when a *protected* request is rejected with
+ * 401, meaning the server session expired or was revoked. The CSRF cache is
+ * already cleared when the listener runs, so clearing the frontend session in
+ * the listener is enough to let the user sign in again. The 401 that the
+ * login endpoint itself returns for bad credentials never fires this.
+ */
+export function onUnauthorized(listener: UnauthorizedListener): () => void {
+  unauthorizedListeners.add(listener)
+  return () => {
+    unauthorizedListeners.delete(listener)
+  }
+}
+
+const LOGIN_PATH = '/api/auth/login'
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 const apiUrl = (path: string) => `${API_BASE_URL}${path}`
 
@@ -47,13 +66,22 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const headers = new Headers(init.headers)
   if (init.body) headers.set('Content-Type', 'application/json')
 
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && path !== '/api/auth/login') {
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && path !== LOGIN_PATH) {
     const csrf = await getCsrfHeader()
     headers.set(csrf.name, csrf.token)
   }
 
   const response = await fetch(apiUrl(path), { ...init, headers, credentials: 'include' })
-  if (!response.ok) throw await readError(response)
+  if (!response.ok) {
+    if (response.status === 401 && path !== LOGIN_PATH) {
+      // The server session is gone (expired, revoked, restarted). Drop the
+      // cached CSRF token and tell the app so it clears the frontend session
+      // and routes the user back to sign-in for reauthentication.
+      clearApiSession()
+      for (const listener of [...unauthorizedListeners]) listener()
+    }
+    throw await readError(response)
+  }
   if (response.status === 204) return undefined as T
   return (await response.json()) as T
 }

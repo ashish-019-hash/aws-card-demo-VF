@@ -28,13 +28,16 @@ public class CardDataService {
         validator.cardNumber(number, true); validator.card(r);
         CreditCard c = entity(number);
         if (!Objects.equals(c.getVersion(), r.version())) throw new com.aws.carddemo.exception.ResourceConflictException("Credit card changed after it was fetched");
-        boolean changed = !Objects.equals(c.getAccountId(), r.accountId()) || !Objects.equals(c.getCvvCode(), r.cvvCode())
+        // Legacy COCRDUPC keys the card by account + card number; a card can never move to another account.
+        if (!Objects.equals(c.getAccountId(), r.accountId())) throw new IllegalArgumentException("Card cannot be reassigned to a different account");
+        boolean changed = !Objects.equals(c.getCvvCode(), r.cvvCode())
                 || !Objects.equals(c.getEmbossedName(), r.embossedName()) || !Objects.equals(c.getExpirationDate(), r.expirationDate())
                 || !Objects.equals(c.getActiveStatus(), r.activeStatus());
         if (!changed) throw new IllegalArgumentException("At least one card field must change");
-        c.setAccountId(r.accountId()); c.setCvvCode(r.cvvCode()); c.setEmbossedName(r.embossedName());
+        c.setCvvCode(r.cvvCode()); c.setEmbossedName(r.embossedName());
         c.setExpirationDate(r.expirationDate()); c.setActiveStatus(r.activeStatus());
-        return toDto(repository.save(c));
+        // Flush so the returned version reflects this update and supports consecutive edits.
+        return toDto(repository.saveAndFlush(c));
     }
 
     private CreditCard entity(String number) { return repository.findById(number).orElseThrow(() -> new ResourceNotFoundException("Credit card", number)); }

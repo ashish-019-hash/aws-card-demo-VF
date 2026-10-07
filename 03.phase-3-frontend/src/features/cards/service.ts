@@ -145,21 +145,40 @@ export async function fetchCard(
 }
 
 /**
+ * Builds the expiry date sent to the backend: the month and year come from
+ * the form, and the stored day-of-month is kept where it is still a valid
+ * day of the selected month, otherwise clamped to that month's last day
+ * (e.g. stored day 31 with February selected becomes 28, or 29 in a leap
+ * year). The screen only ever shows month and year, so the day is a hidden
+ * carry-over that must never make the date invalid.
+ */
+export function buildExpirationDate(storedDate: string, expiryMonth: string, expiryYear: string): string {
+  const year = Number(expiryYear)
+  const month = Number(expiryMonth)
+  const storedDay = Number(storedDate.split('-')[2] ?? '1') || 1
+  // Date.UTC months are 0-based, so day 0 of the next month is the last day
+  // of the selected (1-based) month.
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const day = Math.min(storedDay, lastDay)
+  return `${expiryYear}-${expiryMonth.padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/**
  * Persist the edited SCREEN-08 field set with the optimistic version from
  * the fetch. Month and year come from the form; the day-of-month of the
- * stored expiry date is preserved.
+ * stored expiry date is preserved where valid and clamped to the selected
+ * month's last day otherwise.
  */
 export async function saveCard(
   card: CreditCard,
   values: CardUpdateFormValues,
 ): Promise<LookupResult<CreditCard>> {
-  const day = card.expirationDate.split('-')[2] ?? '01'
   const request: CreditCardUpdateRequest = {
     version: card.version,
     accountId: Number(card.accountId),
     cvvCode: card.cvvCode,
     embossedName: values.embossedName,
-    expirationDate: `${values.expiryYear}-${values.expiryMonth.padStart(2, '0')}-${day}`,
+    expirationDate: buildExpirationDate(card.expirationDate, values.expiryMonth, values.expiryYear),
     activeStatus: values.activeStatus as 'Y' | 'N',
   }
   try {

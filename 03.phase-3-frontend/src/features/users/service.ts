@@ -1,19 +1,10 @@
 // Step 3 — user administration data access through the real backend API.
 import { api } from '../../services/api'
+import { fetchPositionedPage } from '../../services/positionedList'
 import type { AppUser } from '../../types/user'
 
 /** Rows per User List page (SCREEN-14 shows ten users per page). */
 export const USERS_PAGE_SIZE = 10
-
-/**
- * Page size used when the start-user filter is applied. The backend list has
- * no server-side start-user filter, so filtered views fetch bounded id-sorted
- * pages and apply the documented `id >= key` positioning client-side.
- */
-const FILTER_FETCH_SIZE = 100
-
-/** Upper bound on records scanned while resolving a filtered view. */
-const FILTER_FETCH_LIMIT = 1_000
 
 export interface UserListResult {
   rows: AppUser[]
@@ -26,9 +17,10 @@ export interface UserListResult {
 /**
  * Resolve one page of the user list (SCREEN-14 COUSR00). An optional start
  * key positions the list at that user ID onwards (legacy USRIDIN behavior).
- * Without a key the backend page is used directly; with a key, bounded
- * id-sorted pages are fetched and filtered locally because the backend has no
- * start-user parameter.
+ * Without a key the backend page is used directly; with a key, the start
+ * offset in the id-ascending list is located with a bounded binary search
+ * because the backend has no start-user parameter — honest for any list
+ * size, unlike a fixed scanned window.
  */
 export async function fetchUserPage(startUserId: string, page: number): Promise<UserListResult> {
   const key = startUserId.trim().toUpperCase()
@@ -43,27 +35,17 @@ export async function fetchUserPage(startUserId: string, page: number): Promise<
     }
   }
 
-  // One row past the requested page tells us whether a next page exists.
-  const needed = page * USERS_PAGE_SIZE + 1
-  const matching: AppUser[] = []
-  let fetched = 0
-
-  for (let pageIndex = 0; ; pageIndex += 1) {
-    const result = await api.users.list(pageIndex, FILTER_FETCH_SIZE)
-    for (const user of result.content) {
-      if (user.id >= key) matching.push(user)
-    }
-    fetched += result.content.length
-    const isLastServerPage =
-      result.content.length === 0 || pageIndex + 1 >= result.page.totalPages
-    if (isLastServerPage || matching.length >= needed || fetched >= FILTER_FETCH_LIMIT) break
-  }
-
-  const start = (page - 1) * USERS_PAGE_SIZE
+  const positioned = await fetchPositionedPage(
+    (pageNumber, size) => api.users.list(pageNumber, size),
+    (user) => user.id,
+    key,
+    page - 1,
+    USERS_PAGE_SIZE,
+  )
   return {
-    rows: matching.slice(start, start + USERS_PAGE_SIZE),
+    rows: positioned.items,
     page,
     hasPrevious: page > 1,
-    hasNext: matching.length > start + USERS_PAGE_SIZE,
+    hasNext: positioned.hasNext,
   }
 }

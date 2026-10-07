@@ -91,6 +91,9 @@ export function UserUpdatePage() {
     // its "must change" 400 is mapped to the documented message below.
     setMessage(null)
     setSaving(true)
+    // A Clear, a newer lookup or an unmount bumps requestRef; this save's
+    // completion must not overwrite that newer screen state.
+    const request = requestRef.current
     try {
       const updated = await api.users.update(baseline.userId, {
         firstName: values.firstName,
@@ -98,6 +101,7 @@ export function UserUpdatePage() {
         password: values.password,
         userType: values.userType === 'A' ? 'A' : 'U',
       })
+      if (requestRef.current !== request) return
       setLookup({ status: 'success', data: updated })
       setBaseline({
         userId: updated.id,
@@ -110,6 +114,7 @@ export function UserUpdatePage() {
       setFetchCount((count) => count + 1)
       setMessage({ tone: 'success', text: userMessages.userUpdated(updated.id) })
     } catch (error) {
+      if (requestRef.current !== request) return
       if (error instanceof ApiError && error.status === 404) {
         setMessage({ tone: 'error', text: userMessages.userNotFound })
       } else if (
@@ -126,7 +131,7 @@ export function UserUpdatePage() {
         })
       }
     } finally {
-      setSaving(false)
+      if (requestRef.current === request) setSaving(false)
     }
   }
 
@@ -153,6 +158,7 @@ export function UserUpdatePage() {
             key={resetKey}
             initialUserId={userIdParam}
             loading={lookup.status === 'loading'}
+            disabled={saving}
             onSearch={lookupUser}
             onClear={handleClear}
           />

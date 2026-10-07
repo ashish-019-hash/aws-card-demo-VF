@@ -1,16 +1,10 @@
 // Step 3 — maps the backend transaction API (services/api) onto the
 // screen-level domain types used by the transaction screens.
 import { api, ApiError, type TransactionDto } from '../../services/api'
+import { fetchPositionedPage } from '../../services/positionedList'
 import type { Transaction, TransactionListRow } from '../../types/transaction'
 
 export const TRANSACTIONS_PAGE_SIZE = 10
-
-/**
- * Bounded window fetched when the list is positioned at a starting
- * transaction ID. The backend list endpoint has no start-ID filter, so the
- * screen positions within this window (legacy TRNIDIN behavior).
- */
-export const POSITIONED_FETCH_SIZE = 1000
 
 /** Converts a backend TransactionDto to the screen's string-based Transaction. */
 export function toTransaction(dto: TransactionDto): Transaction {
@@ -66,7 +60,10 @@ export interface TransactionListPageData {
 
 /**
  * Resolves one page of the transaction list, positioned at the optional
- * starting transaction ID (legacy TRNIDIN behavior).
+ * starting transaction ID (legacy TRNIDIN behavior). The backend has no
+ * start-ID filter, so the positioned case locates the start offset in the
+ * id-ascending list with a bounded binary search and reads the display page
+ * from there — honest for any file size, unlike a fixed scanned window.
  */
 export async function fetchTransactionPage(startId: string | undefined, page: number): Promise<TransactionListPageData> {
   if (!startId) {
@@ -77,12 +74,16 @@ export async function fetchTransactionPage(startId: string | undefined, page: nu
     }
   }
   const normalized = normalizeTransactionId(startId)
-  const response = await api.transactions.list(0, POSITIONED_FETCH_SIZE)
-  const positioned = response.content.filter((dto) => dto.id >= normalized)
-  const start = page * TRANSACTIONS_PAGE_SIZE
+  const positioned = await fetchPositionedPage(
+    (pageNumber, size) => api.transactions.list(pageNumber, size),
+    (dto) => dto.id,
+    normalized,
+    page,
+    TRANSACTIONS_PAGE_SIZE,
+  )
   return {
-    rows: positioned.slice(start, start + TRANSACTIONS_PAGE_SIZE).map((dto) => toListRow(toTransaction(dto))),
-    hasNext: start + TRANSACTIONS_PAGE_SIZE < positioned.length,
+    rows: positioned.items.map((dto) => toListRow(toTransaction(dto))),
+    hasNext: positioned.hasNext,
   }
 }
 

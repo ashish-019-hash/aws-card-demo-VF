@@ -32,6 +32,9 @@ public class LegacyInputValidator {
     public void accountId(Object id, boolean required) {
         String value = id == null ? "" : id.toString();
         if (!required && value.isBlank()) return;
+        // Path/body bindings convert zero-padded legacy IDs (e.g. 00000000001) to Long,
+        // so a positive number within the 11-digit range stands for its padded form.
+        if (value.matches("[0-9]{1,10}")) value = "0".repeat(11 - value.length()) + value;
         require(ACCOUNT_ID.matcher(value).matches() && !value.equals("00000000000"), "Account ID must be an 11-digit non-zero number");
     }
 
@@ -126,8 +129,9 @@ public class LegacyInputValidator {
     }
 
     public void user(UserRequest request, boolean passwordRequired) {
-        alphaRequired(request.firstName(), "First name");
-        alphaRequired(request.lastName(), "Last name");
+        // Names accept punctuation (e.g. O'Brien, Smith-Jones); only nonblank and length are enforced.
+        require(!blank(request.firstName()), "First name must be supplied");
+        require(!blank(request.lastName()), "Last name must be supplied");
         if (passwordRequired) require(!blank(request.password()), "Password is required");
         require("A".equalsIgnoreCase(request.userType()) || "U".equalsIgnoreCase(request.userType()), "User type must be A or U");
     }

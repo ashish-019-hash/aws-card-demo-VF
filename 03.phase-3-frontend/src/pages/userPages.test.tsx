@@ -117,10 +117,15 @@ describe('UserListPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Go' }))
 
     expect((await screen.findAllByText('USER0015')).length).toBeGreaterThan(0)
-    // Filtered views fetch bounded 100-row pages because the backend has no start-user parameter.
-    expect(api.users.list).toHaveBeenLastCalledWith(0, 100)
     expect(screen.queryByText('USER0014')).not.toBeInTheDocument()
     expect(screen.getAllByText('USER0021').length).toBeGreaterThan(0)
+    // The backend has no start-user parameter, so the start offset is located
+    // with single-row probes and the rows are read in display-page-sized
+    // requests — never an unbounded or fixed-window scan.
+    const sizesUsed = vi
+      .mocked(api.users.list)
+      .mock.calls.map(([, size]) => size)
+    expect(new Set(sizesUsed)).toEqual(new Set([1, 10]))
   })
 
   it('shows the documented browse failure when the list call fails', async () => {
@@ -230,6 +235,38 @@ describe('UserUpdatePage', () => {
     expect(screen.getByLabelText(/Password/)).toHaveValue('')
   })
 
+  it('locks the lookup controls while a save is in flight so a new lookup cannot race it', async () => {
+    vi.mocked(api.users.get).mockResolvedValue(user('USER0002', 'Marcus', 'Lee'))
+    let resolveUpdate: (value: UserDto) => void = () => {}
+    vi.mocked(api.users.update).mockImplementation(
+      () => new Promise<UserDto>((resolve) => (resolveUpdate = resolve)),
+    )
+    renderAdminPage(<UserUpdatePage />, {
+      routePath: '/admin/users/update/:userId?',
+      url: '/admin/users/update/USER0002',
+    })
+    expect(await screen.findByDisplayValue('Marcus')).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText(/Password/), 'newpass1')
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    // While the update is pending, a new lookup or clear must not be possible:
+    // its response could otherwise overwrite newer screen state.
+    expect(screen.getByRole('button', { name: 'Fetch user' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled()
+    // The search form's User ID field is locked too (the loaded user form's
+    // copy of the field is always read-only, so it is filtered out here).
+    const searchField = () =>
+      screen.getAllByLabelText(/User ID/).find((field) => !field.hasAttribute('readonly'))
+    expect(searchField()).toBeDisabled()
+
+    resolveUpdate(user('USER0002', 'Marcus', 'Lee'))
+    await waitFor(() =>
+      expect(screen.getByText('User USER0002 has been updated.')).toBeInTheDocument(),
+    )
+    expect(screen.getByRole('button', { name: 'Fetch user' })).not.toBeDisabled()
+    expect(searchField()).not.toBeDisabled()
+  })
+
   it('maps the backend no-change rejection to the documented message (RULE-VAL-081)', async () => {
     vi.mocked(api.users.get).mockResolvedValue(user('USER0002', 'Marcus', 'Lee'))
     vi.mocked(api.users.update).mockRejectedValue(
@@ -293,6 +330,30 @@ describe('UserDeletePage', () => {
       expect(screen.getByText('User USER0008 has been deleted.')).toBeInTheDocument(),
     )
     expect(api.users.delete).toHaveBeenCalledWith('USER0008')
+  })
+
+  it('locks the lookup controls while a delete is in flight so a new lookup cannot race it', async () => {
+    vi.mocked(api.users.get).mockResolvedValue(user('USER0008', 'Sam', 'Patel'))
+    let resolveDelete: () => void = () => {}
+    vi.mocked(api.users.delete).mockImplementation(
+      () => new Promise<void>((resolve) => (resolveDelete = resolve)),
+    )
+    renderAdminPage(<UserDeletePage />, {
+      routePath: '/admin/users/delete/:userId?',
+      url: '/admin/users/delete/USER0008',
+    })
+    expect(await screen.findByRole('heading', { name: 'Confirm deletion' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Delete user' }))
+
+    expect(screen.getByRole('button', { name: 'Fetch user' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDisabled()
+    expect(screen.getByLabelText(/User ID/)).toBeDisabled()
+
+    resolveDelete()
+    await waitFor(() =>
+      expect(screen.getByText('User USER0008 has been deleted.')).toBeInTheDocument(),
+    )
+    expect(screen.getByRole('button', { name: 'Fetch user' })).not.toBeDisabled()
   })
 
   it('rejects a blank lookup with the legacy field message without calling the API (RULE-VAL-080)', async () => {

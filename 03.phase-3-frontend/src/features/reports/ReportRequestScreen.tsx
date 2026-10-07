@@ -107,7 +107,13 @@ export function ReportRequestScreen() {
       }
       const response = await api.reports.create(request)
       if (seq !== requestSeqRef.current) return
-      setMessage({ tone: 'success', text: `${reportTypeLabels[type]} report submitted for printing` })
+      // The legacy print step (CBTRN03C) has no source in this migration, so
+      // the backend only prepares the selected transaction set — the copy must
+      // not claim a report is being printed.
+      setMessage({
+        tone: 'success',
+        text: `${reportTypeLabels[type]} report selection prepared. Printing is unavailable because the legacy formatter source (CBTRN03C) is missing.`,
+      })
       setOutcome({
         reportType: type,
         startDate: response.startDate,
@@ -135,7 +141,7 @@ export function ReportRequestScreen() {
         screen="CORPT00"
         eyebrow="Transactions"
         title="Transaction Reports"
-        description="Request a printed transaction report. It is produced by a background job and selected by processing date."
+        description="Request a transaction report. The matching transactions are selected by processing date; printing is unavailable because the legacy formatter source is missing."
         actions={
           <Button variant="secondary" onClick={() => navigate(backTo)}>
             Back to menu

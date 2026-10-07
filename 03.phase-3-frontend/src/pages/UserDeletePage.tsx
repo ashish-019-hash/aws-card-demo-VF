@@ -78,12 +78,17 @@ export function UserDeletePage() {
   const handleDelete = async (user: AppUser) => {
     setMessage(null)
     setDeleting(true)
+    // A Clear, a newer lookup or an unmount bumps requestRef; this delete's
+    // completion must not overwrite that newer screen state.
+    const request = requestRef.current
     try {
       await api.users.delete(user.id)
+      if (requestRef.current !== request) return
       setLookup({ status: 'idle' })
       setResetKey((key) => key + 1)
       setMessage({ tone: 'success', text: userMessages.userDeleted(user.id) })
     } catch (error) {
+      if (requestRef.current !== request) return
       setMessage({
         tone: 'error',
         text:
@@ -94,7 +99,7 @@ export function UserDeletePage() {
               : userMessages.lookupFailed,
       })
     } finally {
-      setDeleting(false)
+      if (requestRef.current === request) setDeleting(false)
     }
   }
 
@@ -121,6 +126,7 @@ export function UserDeletePage() {
             key={resetKey}
             initialUserId={userIdParam}
             loading={lookup.status === 'loading'}
+            disabled={deleting}
             onSearch={lookupUser}
             onClear={handleClear}
           />
