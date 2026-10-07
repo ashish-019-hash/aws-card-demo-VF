@@ -192,7 +192,7 @@ export function ReportRequestScreen() {
                 ),
               },
             ]}
-            aria-controls="report-custom-dates"
+            aria-controls={reportType === 'CUSTOM' ? 'report-custom-dates' : undefined}
             error={errors.reportType?.message}
             {...register('reportType')}
           />

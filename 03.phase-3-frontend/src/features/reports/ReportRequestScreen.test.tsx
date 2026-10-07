@@ -91,11 +91,16 @@ describe('TransactionReportsPage', () => {
 
   it('reveals the custom date range only for the Custom type', async () => {
     renderPage()
+    const custom = screen.getByRole('radio', { name: /Custom/ })
+    expect(custom).not.toHaveAttribute('aria-controls')
     expect(screen.queryByLabelText(/Start date/)).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('radio', { name: /Custom/ }))
+    await userEvent.click(custom)
+    expect(custom).toHaveAttribute('aria-controls', 'report-custom-dates')
+    expect(document.getElementById('report-custom-dates')).toBeInTheDocument()
     expect(screen.getByLabelText(/Start date/)).toBeInTheDocument()
     expect(screen.getByLabelText(/End date/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('radio', { name: /Monthly/ }))
+    expect(custom).not.toHaveAttribute('aria-controls')
     expect(screen.queryByLabelText(/Start date/)).not.toBeInTheDocument()
   })
 

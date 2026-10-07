@@ -17,6 +17,7 @@ import com.aws.carddemo.dto.CreditCardDto;
 import com.aws.carddemo.dto.CustomerDto;
 import com.aws.carddemo.dto.TransactionDto;
 import com.aws.carddemo.dto.UserDto;
+import com.aws.carddemo.entity.Account;
 import com.aws.carddemo.exception.GlobalExceptionHandler;
 import com.aws.carddemo.exception.ResourceNotFoundException;
 import com.aws.carddemo.service.AccountDataService;
@@ -32,6 +33,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
+import org.springframework.data.mapping.PropertyReferenceException;
+import org.springframework.data.util.TypeInformation;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -125,6 +129,24 @@ class ApiContractTest {
         mvc.perform(post("/api/transactions").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Validation failed"));
+    }
+
+    @Test
+    void concurrencyAndInvalidSortFailuresUseProblemDetails() throws Exception {
+        when(accounts.update(anyLong(), any()))
+                .thenThrow(new ObjectOptimisticLockingFailureException(Account.class, 1L));
+        mvc.perform(put("/api/accounts/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0,\"activeStatus\":\"Y\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Resource conflict"))
+                .andExpect(jsonPath("$.detail").value("The record changed during this operation. Reload and try again."));
+
+        when(accounts.findAll(any())).thenThrow(new PropertyReferenceException(
+                "unknownField", TypeInformation.of(Account.class), List.of()));
+        mvc.perform(get("/api/accounts").param("sort", "unknownField,asc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid request"))
+                .andExpect(jsonPath("$.detail").value("Unknown sort field: unknownField"));
     }
 
     private TransactionDto transactionDto() {

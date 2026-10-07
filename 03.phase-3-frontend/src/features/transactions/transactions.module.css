@@ -126,6 +126,13 @@
 }
 
 @media (max-width: 639px) {
+  .truncate {
+    display: block;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .formFooter {
     position: sticky;
     bottom: 0;

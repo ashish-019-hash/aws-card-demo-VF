@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import com.aws.carddemo.dto.UserRequest;
 import com.aws.carddemo.entity.ApplicationUser;
@@ -109,5 +110,16 @@ class SessionSecurityTest {
         MockHttpSession session = login("SESUSR06");
         userService.update("SESUSR06", new UserRequest("Renamed", "Tester", PASSWORD, "U"));
         mvc.perform(get("/api/accounts").session(session)).andExpect(status().isOk());
+    }
+
+    @Test
+    void logoutReturnsNoContentAndInvalidatesTheSession() throws Exception {
+        seedUser("SESUSR08", "U");
+        MockHttpSession session = login("SESUSR08");
+
+        mvc.perform(post("/api/auth/logout").session(session).with(csrf()))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/accounts").session(session))
+                .andExpect(status().isUnauthorized());
     }
 }
