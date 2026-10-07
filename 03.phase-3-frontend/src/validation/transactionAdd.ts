@@ -89,7 +89,11 @@ function legacyField(...checks: Check[]) {
 export const transactionAddSchema = z
   .object({
     accountId: legacyField(optionalNumeric(transactionAddMessages.accountIdNotNumeric)).optional(),
-    cardNumber: legacyField(optionalNumeric(transactionAddMessages.cardNumberNotNumeric)).optional(),
+    // The card's numeric check lives in the cross-field superRefine below:
+    // legacy COTRN02C's EVALUATE gives the account precedence, so the card is
+    // only validated when no account is entered (an entered account always
+    // overwrites the card from the cross-reference).
+    cardNumber: z.string().optional(),
     transactionTypeCode: legacyField(
       required(transactionAddMessages.typeCodeEmpty),
       numeric(transactionAddMessages.typeCodeNotNumeric),
@@ -124,10 +128,17 @@ export const transactionAddSchema = z
     confirmation: z.string().optional(),
   })
   // RULE-VAL-054 — at least one of the two keys; reported on the account
-  // field, where the legacy screen put the cursor.
+  // field, where the legacy screen put the cursor. RULE-VAL-055 account
+  // precedence: the card is only checked when no account is entered.
   .superRefine((values, ctx) => {
-    if (!values.accountId?.trim() && !values.cardNumber?.trim()) {
+    const account = values.accountId?.trim() ?? ''
+    const card = values.cardNumber?.trim() ?? ''
+    if (!account && !card) {
       ctx.addIssue({ code: 'custom', path: ['accountId'], message: transactionAddMessages.accountOrCardRequired })
+      return
+    }
+    if (!account && !DIGITS.test(card)) {
+      ctx.addIssue({ code: 'custom', path: ['cardNumber'], message: transactionAddMessages.cardNumberNotNumeric })
     }
   })
 
@@ -142,7 +153,9 @@ export interface TransactionKeyError {
  * The schema's target-key rules (RULE-VAL-054/055) as a standalone check, for
  * actions that run outside form submission — legacy COTRN02C performs
  * VALIDATE-INPUT-KEY-FIELDS before COPY-LAST-TRAN-DATA, so copy-last must
- * apply the same rules before anything is copied.
+ * apply the same rules before anything is copied. The legacy EVALUATE gives
+ * an entered account precedence: the card is then not validated at all, since
+ * the cross-reference overwrites it.
  */
 export function validateTransactionKeys(accountId: string, cardNumber: string): TransactionKeyError | null {
   const account = accountId.trim()
@@ -150,11 +163,8 @@ export function validateTransactionKeys(accountId: string, cardNumber: string): 
   if (!account && !card) {
     return { field: 'accountId', message: transactionAddMessages.accountOrCardRequired }
   }
-  if (account && !DIGITS.test(account)) {
-    return { field: 'accountId', message: transactionAddMessages.accountIdNotNumeric }
+  if (account) {
+    return DIGITS.test(account) ? null : { field: 'accountId', message: transactionAddMessages.accountIdNotNumeric }
   }
-  if (card && !DIGITS.test(card)) {
-    return { field: 'cardNumber', message: transactionAddMessages.cardNumberNotNumeric }
-  }
-  return null
+  return DIGITS.test(card) ? null : { field: 'cardNumber', message: transactionAddMessages.cardNumberNotNumeric }
 }

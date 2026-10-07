@@ -113,8 +113,11 @@ public class LegacyInputValidator {
     public void transaction(TransactionRequest request) {
         transactionId(request.id(), true);
         require(request.accountId() != null || !blank(request.cardNumber()), "Account or Card Number must be entered");
+        // COTRN02C account precedence: with an account ID the cross-reference supplies
+        // the card number and any typed card text is ignored, so the card number is
+        // only validated when it is the key being used.
         if (request.accountId() != null) accountId(request.accountId(), true);
-        if (!blank(request.cardNumber())) cardNumber(request.cardNumber(), true);
+        else cardNumber(request.cardNumber(), true);
         require(request.transactionTypeCode().matches("[0-9]{2}"), "Type code must be numeric");
         require(request.transactionCategoryCode() >= 0 && request.transactionCategoryCode() <= 9999, "Category code must be numeric and at most four digits");
         require(SIGNED_AMOUNT.matcher(request.amount()).matches(), "Amount must use format -99999999.99");

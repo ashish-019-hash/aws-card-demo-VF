@@ -338,6 +338,9 @@ describe('TransactionAddPage', () => {
   it('enforces the strict amount, date and numeric edits (RULE-VAL-055/058/059/060/061)', async () => {
     renderAt('/transactions/add')
     await userEvent.type(screen.getByLabelText(/Account number/), '1000000000A')
+    // With an account entered the card is never validated (legacy account
+    // precedence — the cross-reference overwrites it).
+    await userEvent.type(screen.getByLabelText(/Card number/), '4000A2345678901B')
     await userEvent.type(screen.getByLabelText(/Type code/), 'AB')
     await userEvent.type(screen.getByLabelText(/Category code/), '12A4')
     await userEvent.type(screen.getByLabelText(/Source/), 'POS TERM')
@@ -352,6 +355,7 @@ describe('TransactionAddPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Review and add' }))
 
     expect(await screen.findByText('Account ID must be Numeric.')).toBeInTheDocument()
+    expect(screen.queryByText('Card Number must be Numeric.')).not.toBeInTheDocument()
     expect(screen.getByText('Type CD must be Numeric.')).toBeInTheDocument()
     expect(screen.getByText('Category CD must be Numeric.')).toBeInTheDocument()
     expect(screen.getByText('Amount should be in format -99999999.99')).toBeInTheDocument()
@@ -578,6 +582,62 @@ describe('TransactionAddPage', () => {
     expect(list).toHaveBeenCalled()
     expect(screen.getByLabelText(/Account number/)).toHaveValue('00000000042')
     expect(screen.getByLabelText(/Card number/)).toHaveValue('4000999988887777')
+  })
+
+  it('ignores a malformed supplied card when an account is entered (account precedence)', async () => {
+    cardsByAccount.mockResolvedValue([cardDto('4000999988887777', 42)])
+    list.mockResolvedValue(
+      pageOf([transactionDto('125', { description: 'ACCOUNT PRECEDENCE COPY' })], {
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    )
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Account number/), '00000000042')
+    await userEvent.type(screen.getByLabelText(/Card number/), '4000ABC6789XYZ')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    // Only the account was validated; the malformed card never blocks the
+    // copy and is overwritten from the cross-reference.
+    expect(await screen.findByLabelText(/Description/)).toHaveValue('ACCOUNT PRECEDENCE COPY')
+    expect(screen.queryByText('Card Number must be Numeric.')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Account number/)).toHaveValue('00000000042')
+    expect(screen.getByLabelText(/Card number/)).toHaveValue('4000999988887777')
+  })
+
+  it('refuses to copy when only a malformed card is entered', async () => {
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Card number/), '4000ABC6789XYZ')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    expect((await screen.findAllByText('Card Number must be Numeric.')).length).toBeGreaterThan(0)
+    expect(list).not.toHaveBeenCalled()
+    expect(cardsGet).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/Description/)).toHaveValue('')
+  })
+
+  it('locks every input while a copy is in flight so a delayed copy cannot overwrite newer edits', async () => {
+    cardsByAccount.mockResolvedValue([cardDto('4000999988887777', 42)])
+    let resolveList: (page: PageResponse<TransactionDto>) => void = () => {}
+    list.mockImplementation(
+      () => new Promise<PageResponse<TransactionDto>>((resolve) => (resolveList = resolve)),
+    )
+    renderAt('/transactions/add')
+    await userEvent.type(screen.getByLabelText(/Account number/), '00000000042')
+    await userEvent.click(screen.getByRole('button', { name: 'Copy last transaction' }))
+
+    // While the copy is pending the target keys (and every other field) are
+    // locked, so there can be no newer edits for the response to clobber.
+    expect(screen.getByLabelText(/Account number/)).toBeDisabled()
+    expect(screen.getByLabelText(/Card number/)).toBeDisabled()
+    expect(screen.getByLabelText(/Description/)).toBeDisabled()
+    expect(screen.getByLabelText(/Merchant name/)).toBeDisabled()
+
+    resolveList(pageOf([transactionDto('125', { description: 'COPIED LATER' })], { totalElements: 1, totalPages: 1 }))
+    expect(await screen.findByLabelText(/Description/)).toHaveValue('COPIED LATER')
+    // The form unlocks once the copy completes.
+    expect(screen.getByLabelText(/Account number/)).not.toBeDisabled()
+    expect(screen.getByLabelText(/Description/)).not.toBeDisabled()
   })
 
   it('refuses to copy when the entered card does not exist', async () => {

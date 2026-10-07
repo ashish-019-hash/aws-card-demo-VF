@@ -64,9 +64,12 @@ describe('transactionAddSchema', () => {
     expect(firstError(transactionAddSchema.safeParse({ ...validAdd, accountId: '1000000000A' }), 'accountId')).toBe(
       transactionAddMessages.accountIdNotNumeric,
     )
+    // The card is only validated when no account is entered — legacy account
+    // precedence: an entered account overwrites the card from the xref.
     expect(
-      firstError(transactionAddSchema.safeParse({ ...validAdd, cardNumber: '4000-1234' }), 'cardNumber'),
+      firstError(transactionAddSchema.safeParse({ ...validAdd, accountId: '', cardNumber: '4000-1234' }), 'cardNumber'),
     ).toBe(transactionAddMessages.cardNumberNotNumeric)
+    expect(transactionAddSchema.safeParse({ ...validAdd, cardNumber: '4000-1234' }).success).toBe(true)
   })
 
   it('requires every data field with its legacy message (RULE-VAL-057)', () => {

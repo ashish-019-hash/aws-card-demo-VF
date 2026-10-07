@@ -164,6 +164,10 @@ class DataIntegrityIntegrationTest {
         TransactionDto accountWins = transactionData.create(transactionRequest("9000000000000003", ACCOUNT_ID, OTHER_CARD_NUMBER));
         assertThat(accountWins.cardNumber()).isEqualTo(CARD_NUMBER);
 
+        // Even malformed supplied card text is ignored when a valid account ID is given.
+        TransactionDto malformedIgnored = transactionData.create(transactionRequest("9000000000000005", ACCOUNT_ID, "not-a-card"));
+        assertThat(malformedIgnored.cardNumber()).isEqualTo(CARD_NUMBER);
+
         // A card with no cross-reference entry mirrors the legacy CCXREF NOTFND error.
         assertThatThrownBy(() -> transactionData.create(transactionRequest("9000000000000004", null, UNLINKED_CARD_NUMBER)))
                 .isInstanceOf(ResourceNotFoundException.class);

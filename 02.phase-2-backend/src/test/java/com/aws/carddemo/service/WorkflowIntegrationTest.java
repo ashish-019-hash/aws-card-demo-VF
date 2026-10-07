@@ -115,6 +115,21 @@ class WorkflowIntegrationTest {
     }
 
     @Test
+    void accountPrecedenceIgnoresMalformedSuppliedCardOnTransactionCreate() throws Exception {
+        MockHttpSession session = (MockHttpSession) login("USER0001").getRequest().getSession(false);
+        // COTRN02C account precedence: with a valid account ID, the cross-reference card
+        // is used and even malformed supplied card text must not fail validation.
+        mvc.perform(post("/api/transactions").session(session).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"id\":\"9100000000000001\",\"accountId\":12345678901,\"transactionTypeCode\":\"02\","
+                                + "\"transactionCategoryCode\":2,\"source\":\"POS TERM\",\"description\":\"Account wins\","
+                                + "\"amount\":\"+00000001.00\",\"merchantId\":\"000000001\",\"merchantName\":\"Merchant\","
+                                + "\"merchantCity\":\"City\",\"merchantZip\":\"10001\",\"cardNumber\":\"BAD-CARD\","
+                                + "\"originationTimestamp\":\"2024-01-01\",\"processingTimestamp\":\"2024-01-02\",\"confirmation\":\"Y\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.cardNumber").value(CARD_NUMBER));
+    }
+
+    @Test
     void loginCreatesAnAdminSessionAndRejectsWrongCredentials() throws Exception {
         mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"userId\":\"admin001\",\"password\":\"PASSWORD\"}"))

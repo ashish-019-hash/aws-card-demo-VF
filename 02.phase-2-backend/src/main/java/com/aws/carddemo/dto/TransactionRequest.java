@@ -16,7 +16,9 @@ public record TransactionRequest(
         @NotBlank @Size(max = 50) String merchantName,
         @NotBlank @Size(max = 50) String merchantCity,
         @NotBlank @Size(max = 10) String merchantZip,
-        @Size(min = 16, max = 16) String cardNumber,
+        // Not bean-validated: COTRN02C account precedence ignores any typed card text
+        // when an account ID is supplied; LegacyInputValidator checks it card-only.
+        String cardNumber,
         @NotBlank @Size(max = 26) String originationTimestamp,
         @NotBlank @Size(max = 26) String processingTimestamp,
         @NotBlank @Size(max = 1) String confirmation) { }

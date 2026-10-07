@@ -44,7 +44,7 @@ public class UserDataService {
         boolean changed = credentialsChanged || !Objects.equals(user.getFirstName(), r.firstName()) || !Objects.equals(user.getLastName(), r.lastName());
         if (!changed) throw new IllegalArgumentException("At least one user field must change");
         copy(r, user, true);
-        if (credentialsChanged) user.setSecurityVersion(user.getSecurityVersion() + 1);
+        if (credentialsChanged) user.setSecurityStamp(java.util.UUID.randomUUID().toString());
         UserDto dto = toDto(repository.save(user));
         if (credentialsChanged) sessionRevocation.revokeSessions(userId);
         return dto;

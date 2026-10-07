@@ -231,7 +231,9 @@ export function TransactionAddScreen() {
             render) because reviewAndAdd supersedes the in-flight copy via a
             ref, which must only happen on an actual submit event. */}
         <form onSubmit={(event) => void handleSubmit(reviewAndAdd)(event)} noValidate>
-          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing'}>
+          {/* Every fieldset also locks while a copy-last request is in flight
+              so its delayed response can never overwrite newer edits. */}
+          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing' || copying}>
             <legend className={styles.legend}>Account or card</legend>
             <p className={styles.fieldsetHint}>Enter the account or the card; the other is filled in automatically.</p>
             <div className={styles.formGrid}>
@@ -240,7 +242,7 @@ export function TransactionAddScreen() {
             </div>
           </fieldset>
 
-          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing'}>
+          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing' || copying}>
             <legend className={styles.legend}>Transaction details</legend>
             <div className={styles.formGrid}>
               <TextField
@@ -293,7 +295,7 @@ export function TransactionAddScreen() {
             </div>
           </fieldset>
 
-          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing'}>
+          <fieldset className={styles.fieldset} disabled={phase.kind !== 'editing' || copying}>
             <legend className={styles.legend}>Merchant</legend>
             <div className={styles.formGrid}>
               <TextField

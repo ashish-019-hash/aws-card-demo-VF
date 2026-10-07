@@ -30,7 +30,10 @@ public class ApplicationUser {
 
     @Size(max = 1) @Column(name = "user_type", length = 1) private String userType;
 
-    // Bumped on every password or role change; sessions carrying an older value are rejected.
-    @Column(name = "security_version", nullable = false, columnDefinition = "bigint default 0 not null")
-    private long securityVersion;
+    // Unique incarnation token, replaced on every password or role change (and distinct for a
+    // recreated user ID); sessions carrying a different value are rejected. Unlike a numeric
+    // counter, concurrent changes and delete/recreate can never produce a reusable value.
+    @Size(max = 36)
+    @Column(name = "security_stamp", length = 36, nullable = false)
+    private String securityStamp = java.util.UUID.randomUUID().toString();
 }

@@ -18,7 +18,7 @@ public class DatabaseUserDetailsService implements UserDetailsService {
         ApplicationUser user = users.findById(username.toUpperCase())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         String role = "A".equalsIgnoreCase(user.getUserType()) ? "ADMIN" : "USER";
-        return new CardDemoUserDetails(user.getId(), user.getPasswordHash(), user.getSecurityVersion(),
+        return new CardDemoUserDetails(user.getId(), user.getPasswordHash(), user.getSecurityStamp(),
                 AuthorityUtils.createAuthorityList("ROLE_" + role));
     }
 }

@@ -14,9 +14,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Rejects every authenticated request whose session principal no longer matches the persisted
- * user: the user was deleted, or the per-user security version advanced because the password or
+ * user: the user was deleted, or the per-user security stamp was replaced because the password or
  * role changed. This closes the race where a login authenticates before a credential change
- * commits and registers its session after revocation enumerated the session registry.
+ * commits and registers its session after revocation enumerated the session registry. Because the
+ * stamp is a fresh UUID on creation and on every credential change, concurrent changes can never
+ * converge on the same value and a delete/recreate under the same ID never revives old sessions.
  */
 public class UserSecurityVersionFilter extends OncePerRequestFilter {
     private final ApplicationUserRepository users;
@@ -28,7 +30,8 @@ public class UserSecurityVersionFilter extends OncePerRequestFilter {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof CardDemoUserDetails principal) {
             boolean current = users.findById(principal.getUsername())
-                    .map(user -> user.getSecurityVersion() == principal.getSecurityVersion())
+                    .map(user -> user.getSecurityStamp() != null
+                            && user.getSecurityStamp().equals(principal.getSecurityStamp()))
                     .orElse(false);
             if (!current) {
                 SecurityContextHolder.clearContext();
